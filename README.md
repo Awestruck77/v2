@@ -1,73 +1,98 @@
-# Welcome to your Lovable project
+# Game Price Tracker
 
-## Project info
+A modern web application for tracking and comparing game prices across multiple digital storefronts and regions.
 
-**URL**: https://lovable.dev/projects/85768f1a-9cc6-4595-8a68-67f1c7132934
+## Features
 
-## How can I edit this code?
+✅ **Multi-Store Price Comparison**
+- Steam, Epic Games Store, and GOG integration
+- Real-time price tracking and comparison
+- Best deal highlighting
 
-There are several ways of editing your application.
+✅ **Regional Pricing Support**
+- Multiple regions: US, UK, Germany, India, Canada, Australia
+- Currency conversion and regional price variations
+- Dynamic pricing updates when switching regions
 
-**Use Lovable**
+✅ **Advanced Game Cards**
+- Vertical game covers with proper aspect ratios
+- Critic scores and user ratings displayed prominently
+- Discount badges and percentage savings
+- Store-specific pricing information
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/85768f1a-9cc6-4595-8a68-67f1c7132934) and start prompting.
+✅ **Search & Discovery**
+- Full-text search across game titles and tags
+- Real-time filtering and results
+- Responsive grid layout
 
-Changes made via Lovable will be committed automatically to this repo.
+✅ **Error Handling**
+- Comprehensive error dialog system
+- Network connectivity error detection
+- API rate limiting and timeout handling
+- User-friendly error messages with suggested solutions
 
-**Use your preferred IDE**
+✅ **Modern UI/UX**
+- Dark gaming-themed design system
+- Responsive layout for all devices
+- Smooth animations and transitions
+- Clean, intuitive interface
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Technology Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Frontend**: React 18 + TypeScript
+- **Styling**: Tailwind CSS with custom design system
+- **UI Components**: Shadcn/UI
+- **Icons**: Lucide React
+- **Build Tool**: Vite
+- **State Management**: React hooks
 
-Follow these steps:
+## Quick Start
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start development server: `npm run dev`
+4. Open http://localhost:8080
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Design System
 
-# Step 3: Install the necessary dependencies.
-npm i
+The application uses a custom gaming-themed design system with:
+- Dark color palette optimized for gaming content
+- Purple accent colors for interactive elements
+- Custom color tokens for different store types
+- Responsive breakpoints and spacing system
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## Error Codes Reference
 
-**Edit a file directly in GitHub**
+- **NET_001**: Network connection issues
+- **NET_002**: Connection timeout
+- **API_001**: Service temporarily unavailable
+- **API_002**: Rate limit exceeded
+- **API_003**: Invalid region selected
+- **GAME_001**: Game data loading failed
+- **SEARCH_001**: Search service unavailable
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Regional Pricing
 
-**Use GitHub Codespaces**
+Supported regions with currency conversion:
+- United States (USD) - Base pricing
+- United Kingdom (GBP) - 85% of USD
+- Germany (EUR) - 90% of USD  
+- India (INR) - 30% of USD
+- Canada (CAD) - 125% of USD
+- Australia (AUD) - 140% of USD
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Contributing
 
-## What technologies are used for this project?
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-This project is built with:
+## License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+MIT License - see LICENSE file for details.
 
-## How can I deploy this project?
+## Support
 
-Simply open [Lovable](https://lovable.dev/projects/85768f1a-9cc6-4595-8a68-67f1c7132934) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+For support and feature requests, please open an issue on GitHub.

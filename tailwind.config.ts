@@ -52,16 +52,29 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-					accent: 'hsl(var(--sidebar-accent))',
-					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
-				}
+				// Game-specific colors
+				'game-card': 'hsl(var(--game-card))',
+				'game-card-hover': 'hsl(var(--game-card-hover))',
+				'discount-badge': 'hsl(var(--discount-badge))',
+				'rating-gold': 'hsl(var(--rating-gold))',
+				'price-highlight': 'hsl(var(--price-highlight))',
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				},
+				// Store colors
+				steam: 'hsl(var(--steam))',
+				epic: 'hsl(var(--epic))',
+				gog: 'hsl(var(--gog))'
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-card': 'var(--gradient-card)',
+				'gradient-discount': 'var(--gradient-discount)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
