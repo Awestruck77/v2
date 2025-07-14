@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { GameCard } from '@/components/GameCard';
 import { ErrorDialog } from '@/components/ErrorDialog';
 import { useToast } from '@/hooks/use-toast';
-import { getDeals, type CheapSharkDeal, STORE_NAMES, STORE_IDS, getSteamImage } from '@/lib/cheapshark-api';
+import { getDeals, type CheapSharkDeal, STORE_NAMES, STORE_IDS, getHighQualityImage } from '@/lib/cheapshark-api';
 
 // Enhanced Game interface for CheapShark integration
 interface Game {
@@ -19,10 +19,13 @@ interface Game {
     price: number;
     originalPrice?: number;
     discount?: number;
+    dealID?: string;
+    storeID?: string;
   }>;
   rating: number;
   criticScore: number;
   tags: string[];
+  steamAppID?: string;
 }
 
 interface Region {
@@ -137,13 +140,17 @@ const Index = () => {
     return deals.map(deal => ({
       id: deal.gameID,
       title: deal.title,
-      image: deal.steamAppID ? getSteamImage(deal.steamAppID) : deal.thumb,
+      // Use library cover image for better aspect ratio and quality
+      image: deal.steamAppID ? getHighQualityImage(deal.steamAppID, 'library') : deal.thumb,
       description: '', // Will be filled by game details API later
+      steamAppID: deal.steamAppID,
       stores: [{
         store: getStoreType(deal.storeID),
         price: parseFloat(deal.salePrice),
         originalPrice: parseFloat(deal.normalPrice),
-        discount: Math.round(parseFloat(deal.savings))
+        discount: Math.round(parseFloat(deal.savings)),
+        dealID: deal.dealID,
+        storeID: deal.storeID
       }],
       rating: deal.steamRatingPercent ? parseFloat(deal.steamRatingPercent) / 10 : 7.5,
       criticScore: deal.metacriticScore ? parseInt(deal.metacriticScore) : 75,

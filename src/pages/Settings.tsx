@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const REGIONS = [
   { code: 'US', name: 'United States', currency: 'USD', symbol: '$' },
@@ -19,13 +21,73 @@ const REGIONS = [
 
 const Settings = () => {
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
   const [selectedRegion, setSelectedRegion] = useState('US');
+  const [userName, setUserName] = useState('');
+  const [originalSettings, setOriginalSettings] = useState<any>(null);
   const [notifications, setNotifications] = useState({
     priceAlerts: true,
     newDeals: false,
     freeGames: true,
     wishlistUpdates: true,
   });
+
+  useEffect(() => {
+    // Load user settings from localStorage
+    const savedName = localStorage.getItem('userName') || '';
+    const savedRegion = localStorage.getItem('selectedRegion') || 'US';
+    const savedNotifications = localStorage.getItem('notifications');
+
+    setUserName(savedName);
+    setSelectedRegion(savedRegion);
+    
+    if (savedNotifications) {
+      try {
+        setNotifications(JSON.parse(savedNotifications));
+      } catch (error) {
+        console.error('Failed to parse saved notifications:', error);
+      }
+    }
+
+    // Store original settings for comparison
+    setOriginalSettings({
+      theme,
+      selectedRegion: savedRegion,
+      userName: savedName,
+      notifications: savedNotifications ? JSON.parse(savedNotifications) : notifications,
+    });
+  }, [theme]);
+
+  const hasChanges = () => {
+    if (!originalSettings) return false;
+    
+    return (
+      theme !== originalSettings.theme ||
+      selectedRegion !== originalSettings.selectedRegion ||
+      userName !== originalSettings.userName ||
+      JSON.stringify(notifications) !== JSON.stringify(originalSettings.notifications)
+    );
+  };
+
+  const handleApplyChanges = () => {
+    // Save all settings to localStorage
+    localStorage.setItem('userName', userName);
+    localStorage.setItem('selectedRegion', selectedRegion);
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+
+    // Update original settings
+    setOriginalSettings({
+      theme,
+      selectedRegion,
+      userName,
+      notifications: { ...notifications },
+    });
+
+    toast({
+      title: "Settings applied",
+      description: "Your settings have been saved successfully.",
+    });
+  };
 
   const getThemeDisplayName = (theme: string) => {
     switch (theme) {
@@ -50,6 +112,34 @@ const Settings = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* User Profile */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Profile
+            </CardTitle>
+            <CardDescription>
+              Manage your personal information
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Your Name</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Enter your name"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                This name will be displayed throughout the app
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Appearance Settings */}
         <Card>
           <CardHeader>
@@ -220,6 +310,25 @@ const Settings = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Apply Changes */}
+        {hasChanges() && (
+          <Card className="md:col-span-2">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Unsaved Changes</h3>
+                  <p className="text-sm text-muted-foreground">
+                    You have unsaved changes. Click Apply to save your settings.
+                  </p>
+                </div>
+                <Button onClick={handleApplyChanges} className="bg-primary hover:bg-primary/90">
+                  Apply Changes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* About */}
         <Card className="md:col-span-2">

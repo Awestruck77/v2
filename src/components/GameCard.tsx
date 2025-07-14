@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StoreIcon } from '@/components/StoreIcon';
+import { useNavigate } from 'react-router-dom';
 
 interface Game {
   id: string;
@@ -13,10 +14,13 @@ interface Game {
     price: number;
     originalPrice?: number;
     discount?: number;
+    dealID?: string;
+    storeID?: string;
   }>;
   rating: number;
   criticScore: number;
   tags: string[];
+  steamAppID?: string;
 }
 
 interface Region {
@@ -32,6 +36,8 @@ interface GameCardProps {
 }
 
 export const GameCard = ({ game, currency }: GameCardProps) => {
+  const navigate = useNavigate();
+
   const formatPrice = (price: number) => {
     if (price === 0) return 'FREE';
     return `${currency.symbol}${price.toFixed(2)}`;
@@ -59,8 +65,34 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
 
   const bestDeal = getBestDeal();
 
+  const handleGameClick = () => {
+    navigate(`/game/${game.id}`);
+  };
+
+  const handleStoreClick = (store: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const storeUrls: { [key: string]: string } = {
+      steam: `https://store.steampowered.com/app/${game.steamAppID || ''}`,
+      epic: 'https://store.epicgames.com',
+      gog: 'https://www.gog.com',
+    };
+
+    if (store.dealID) {
+      window.open(`https://www.cheapshark.com/redirect?dealID=${store.dealID}`, '_blank');
+    } else {
+      const url = storeUrls[store.store] || '#';
+      if (url !== '#') {
+        window.open(url, '_blank');
+      }
+    }
+  };
+
   return (
-    <Card className="group relative overflow-hidden bg-game-card hover:bg-game-card-hover transition-all duration-300 border-border hover:border-primary/50 h-[480px] flex flex-col">
+    <Card 
+      className="group relative overflow-hidden bg-game-card hover:bg-game-card-hover transition-all duration-300 border-border hover:border-primary/50 h-[480px] flex flex-col cursor-pointer"
+      onClick={handleGameClick}
+    >
       {/* Image Container with overlay scores */}
       <div className="relative aspect-[3/4] overflow-hidden">
         <img
@@ -127,7 +159,11 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
         {/* Stores and Prices */}
         <div className="space-y-2 mt-auto">
           {game.stores.map((store) => (
-            <div key={store.store} className="flex items-center justify-between py-2 px-3 bg-secondary/30 rounded-lg">
+            <div 
+              key={store.store} 
+              className="flex items-center justify-between py-2 px-3 bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
+              onClick={(e) => handleStoreClick(store, e)}
+            >
               <div className="flex items-center gap-2">
                 <StoreIcon store={store.store} className="w-4 h-4" />
                 <span className="text-sm font-medium text-foreground capitalize">
@@ -144,6 +180,7 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
                 <span className={`font-bold text-sm ${store.price === 0 ? 'text-success' : 'text-price-highlight'}`}>
                   {formatPrice(store.price)}
                 </span>
+                <ExternalLink className="w-3 h-3 text-muted-foreground" />
               </div>
             </div>
           ))}
@@ -153,6 +190,7 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
         <Button 
           className="w-full mt-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
           size="sm"
+          onClick={(e) => handleStoreClick(bestDeal, e)}
         >
           <ExternalLink className="w-3 h-3 mr-2" />
           Best: {formatPrice(bestDeal.price)}
