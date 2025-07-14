@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Search, Globe, RefreshCw } from 'lucide-react';
+import { Search, Globe, RefreshCw, TrendingUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GameCard } from '@/components/GameCard';
 import { ErrorDialog } from '@/components/ErrorDialog';
 import { useToast } from '@/hooks/use-toast';
+import { getDeals, type CheapSharkDeal, STORE_NAMES, STORE_IDS, getSteamImage } from '@/lib/cheapshark-api';
 
-// Types
+// Enhanced Game interface for CheapShark integration
 interface Game {
   id: string;
   title: string;
   image: string;
+  description?: string;
   stores: Array<{
     store: 'steam' | 'epic' | 'gog';
     price: number;
@@ -42,11 +44,11 @@ const REGIONS: Region[] = [
 // Mock pricing data for different regions
 const REGIONAL_PRICING = {
   US: { base: 1, multiplier: 1 },
-  GB: { base: 0.85, multiplier: 1 },
-  DE: { base: 0.9, multiplier: 1 },
-  IN: { base: 0.3, multiplier: 1 },
-  CA: { base: 1.25, multiplier: 1 },
-  AU: { base: 1.4, multiplier: 1 },
+  GB: { base: 0.79, multiplier: 1 },
+  DE: { base: 0.85, multiplier: 1 },
+  IN: { base: 0.25, multiplier: 1 },
+  CA: { base: 1.35, multiplier: 1 },
+  AU: { base: 1.55, multiplier: 1 },
 };
 
 // Sample games data
@@ -113,19 +115,84 @@ const SAMPLE_GAMES: Game[] = [
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRegion, setSelectedRegion] = useState('US');
-  const [games, setGames] = useState<Game[]>(SAMPLE_GAMES);
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState(() => {
+    return localStorage.getItem('selectedRegion') || 'US';
+  });
+  const [games, setGames] = useState<Game[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const currentRegion = REGIONS.find(r => r.code === selectedRegion) || REGIONS[0];
 
-  // Apply regional pricing
+  // Apply regional pricing - fixed implementation
   const getRegionalPrice = (basePrice: number) => {
     const pricing = REGIONAL_PRICING[selectedRegion as keyof typeof REGIONAL_PRICING];
-    return basePrice * pricing.base;
+    if (!pricing) return basePrice;
+    return Number((basePrice * pricing.base).toFixed(2));
   };
+
+  // Convert CheapShark deals to our Game format
+  const convertDealsToGames = (deals: CheapSharkDeal[]): Game[] => {
+    return deals.map(deal => ({
+      id: deal.gameID,
+      title: deal.title,
+      image: deal.steamAppID ? getSteamImage(deal.steamAppID) : deal.thumb,
+      description: '', // Will be filled by game details API later
+      stores: [{
+        store: getStoreType(deal.storeID),
+        price: parseFloat(deal.salePrice),
+        originalPrice: parseFloat(deal.normalPrice),
+        discount: Math.round(parseFloat(deal.savings))
+      }],
+      rating: deal.steamRatingPercent ? parseFloat(deal.steamRatingPercent) / 10 : 7.5,
+      criticScore: deal.metacriticScore ? parseInt(deal.metacriticScore) : 75,
+      tags: ['Action', 'Adventure'] // Placeholder - would need additional API for real tags
+    }));
+  };
+
+  const getStoreType = (storeID: string): 'steam' | 'epic' | 'gog' => {
+    if (storeID === '1') return 'steam';
+    if (storeID === '25') return 'epic';
+    if (storeID === '7') return 'gog';
+    return 'steam'; // default fallback
+  };
+
+  // Load real game deals from CheapShark API
+  const loadGameDeals = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const deals = await getDeals({
+        pageSize: 20,
+        sortBy: 'Savings',
+        desc: true,
+        onSale: true,
+        metacritic: 70
+      });
+      
+      const gameData = convertDealsToGames(deals);
+      setGames(gameData);
+      
+      if (gameData.length === 0) {
+        toast({
+          title: "No deals found",
+          description: "Try adjusting your search criteria or check back later.",
+        });
+      }
+    } catch (err) {
+      setError("Failed to load game deals. Please check your internet connection.");
+      console.error('Error loading deals:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load deals on component mount
+  useEffect(() => {
+    loadGameDeals();
+  }, []);
 
   // Filter games based on search
   const filteredGames = games.filter(game =>
@@ -134,23 +201,16 @@ const Index = () => {
   );
 
   const handleRefresh = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast({
-        title: "Prices updated",
-        description: "Game prices have been refreshed successfully.",
-      });
-    } catch (err) {
-      setError("Failed to refresh prices. Please check your internet connection.");
-    } finally {
-      setIsLoading(false);
-    }
+    await loadGameDeals();
+    toast({
+      title: "Deals refreshed",
+      description: "Latest game deals have been loaded successfully.",
+    });
   };
 
   const handleRegionChange = (regionCode: string) => {
     setSelectedRegion(regionCode);
+    localStorage.setItem('selectedRegion', regionCode);
     toast({
       title: "Region changed",
       description: `Switched to ${REGIONS.find(r => r.code === regionCode)?.name}. Prices updated.`,
@@ -160,15 +220,15 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border backdrop-blur supports-[backdrop-filter]:bg-card/95">
+      <header className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">GP</span>
+                <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-primary-foreground" />
                 </div>
-                <h1 className="text-xl font-bold text-foreground">Game Price Tracker</h1>
+                <h1 className="text-xl font-bold text-foreground">Latest Game Deals</h1>
               </div>
             </div>
 
@@ -219,27 +279,35 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-          {filteredGames.map((game) => (
-            <GameCard
-              key={game.id}
-              game={{
-                ...game,
-                stores: game.stores.map(store => ({
-                  ...store,
-                  price: getRegionalPrice(store.price),
-                  originalPrice: store.originalPrice ? getRegionalPrice(store.originalPrice) : undefined,
-                }))
-              }}
-              currency={currentRegion}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="h-[480px] bg-game-card rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {filteredGames.map((game) => (
+              <GameCard
+                key={game.id}
+                game={{
+                  ...game,
+                  stores: game.stores.map(store => ({
+                    ...store,
+                    price: getRegionalPrice(store.price),
+                    originalPrice: store.originalPrice ? getRegionalPrice(store.originalPrice) : undefined,
+                  }))
+                }}
+                currency={currentRegion}
+              />
+            ))}
+          </div>
+        )}
 
-        {filteredGames.length === 0 && (
+        {filteredGames.length === 0 && !isLoading && (
           <div className="text-center py-12">
-            <h3 className="text-lg font-semibold text-foreground mb-2">No games found</h3>
-            <p className="text-muted-foreground">Try adjusting your search terms.</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">No deals found</h3>
+            <p className="text-muted-foreground">Try adjusting your search terms or refresh to load new deals.</p>
           </div>
         )}
       </main>
