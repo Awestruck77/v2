@@ -1,5 +1,5 @@
 interface StoreIconProps {
-  store: 'steam' | 'epic' | 'gog';
+  store: 'steam' | 'epic' | 'gog' | 'humble' | 'fanatical';
   className?: string;
 }
 
@@ -15,16 +15,28 @@ export const StoreIcon = ({ store, className = "w-4 h-4" }: StoreIconProps) => {
       );
     case 'epic':
       return (
-        <svg className={`${className} text-white`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2.5 3.9l8.63 16.2L20.5 3.9H2.5zm1.7 1.4h14.6l-7.3 13.7L4.2 5.3z"/>
-          <path d="M6.8 7.2h10.4v1.4H6.8V7.2zm0 2.8h10.4v1.4H6.8V10zm0 2.8h7v1.4h-7v-1.4z"/>
+        <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M5.5 3h13v18h-13V3zm2 2v14h9V5h-9zm1 1h7v1h-7V6zm0 2h7v1h-7V8zm0 2h5v1h-5v-1z"/>
+          <path d="M9 13h3v1H9v-1zm0 2h2v1H9v-1z"/>
         </svg>
       );
     case 'gog':
       return (
-        <svg className={`${className} text-[#9b59b6]`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.6 17.6c0 .8-.6 1.4-1.4 1.4H7.8c-.8 0-1.4-.6-1.4-1.4V6.4c0-.8.6-1.4 1.4-1.4h8.4c.8 0 1.4.6 1.4 1.4v11.2z"/>
-          <path d="M8.4 6.8v10.4h7.2V6.8H8.4zm5.6 8.8H10V8.4h4v7.2z"/>
+        <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+          <path d="M8 8h8v8H8V8zm2 2v4h4v-4h-4z"/>
+        </svg>
+      );
+    case 'humble':
+      return (
+        <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      );
+    case 'fanatical':
+      return (
+        <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
         </svg>
       );
     default:

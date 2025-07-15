@@ -44,14 +44,14 @@ const REGIONS: Region[] = [
   { code: 'AU', name: 'Australia', currency: 'AUD', symbol: 'A$' },
 ];
 
-// Mock pricing data for different regions
+// Regional pricing multipliers (approximate conversion rates)
 const REGIONAL_PRICING = {
-  US: { base: 1, multiplier: 1 },
-  GB: { base: 0.79, multiplier: 1 },
-  DE: { base: 0.85, multiplier: 1 },
-  IN: { base: 0.25, multiplier: 1 },
-  CA: { base: 1.35, multiplier: 1 },
-  AU: { base: 1.55, multiplier: 1 },
+  US: { multiplier: 1 },
+  GB: { multiplier: 0.79 },
+  DE: { multiplier: 0.85 },
+  IN: { multiplier: 0.013 }, // 1 USD ≈ 83 INR
+  CA: { multiplier: 1.35 },
+  AU: { multiplier: 1.55 },
 };
 
 // Sample games data
@@ -128,11 +128,19 @@ const Index = () => {
 
   const currentRegion = REGIONS.find(r => r.code === selectedRegion) || REGIONS[0];
 
-  // Apply regional pricing - fixed implementation
-  const getRegionalPrice = (basePrice: number) => {
+  // Apply regional pricing - accurate conversion
+  const getRegionalPrice = (basePriceUSD: number) => {
+    if (selectedRegion === 'US') return basePriceUSD;
+    
     const pricing = REGIONAL_PRICING[selectedRegion as keyof typeof REGIONAL_PRICING];
-    if (!pricing) return basePrice;
-    return Number((basePrice * pricing.base).toFixed(2));
+    if (!pricing) return basePriceUSD;
+    
+    // For India, convert USD to INR properly
+    if (selectedRegion === 'IN') {
+      return Number((basePriceUSD / pricing.multiplier).toFixed(0)); // No decimals for INR
+    }
+    
+    return Number((basePriceUSD / pricing.multiplier).toFixed(2));
   };
 
   // Convert CheapShark deals to our Game format
@@ -239,26 +247,26 @@ const Index = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 flex-1 max-w-2xl">
+            <div className="flex items-center gap-4 flex-1 max-w-4xl">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                 <Input
                   placeholder="Search for games..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-muted border-border"
+                  className="pl-12 h-12 text-lg bg-muted border-border"
                 />
               </div>
 
               <Select value={selectedRegion} onValueChange={handleRegionChange}>
-                <SelectTrigger className="w-48 bg-muted border-border">
-                  <Globe className="w-4 h-4 mr-2" />
+                <SelectTrigger className="w-36 h-12 bg-muted border-border">
+                  <Globe className="w-4 h-4 mr-1" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {REGIONS.map((region) => (
                     <SelectItem key={region.code} value={region.code}>
-                      {region.name} ({region.currency})
+                      {region.code}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -269,16 +277,10 @@ const Index = () => {
                 disabled={isLoading}
                 variant="outline"
                 size="icon"
-                className="border-border hover:bg-muted"
+                className="h-12 w-12 border-border hover:bg-muted"
               >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {currentRegion.symbol}
-              </span>
             </div>
           </div>
         </div>

@@ -16,18 +16,19 @@ import { StoreIcon } from '@/components/StoreIcon';
 
 const mainItems = [
   { title: 'Home', url: '/', icon: Home },
-  { title: 'Search', url: '/search', icon: Search },
+  { title: 'Advanced Search', url: '/search', icon: Search },
   { title: 'Wishlist', url: '/wishlist', icon: Heart },
   { title: 'Deals', url: '/deals', icon: TrendingUp },
   { title: 'Free Games', url: '/free-games', icon: Gift },
+  { title: 'Limited Free', url: '/limited', icon: Gift },
 ];
 
 const storeItems = [
   { title: 'Steam', url: '/store/steam', store: 'steam' as const },
   { title: 'Epic Games', url: '/store/epic', store: 'epic' as const },
   { title: 'GOG', url: '/store/gog', store: 'gog' as const },
-  { title: 'Humble Store', url: '/store/humble', store: 'steam' as const },
-  { title: 'Fanatical', url: '/store/fanatical', store: 'steam' as const },
+  { title: 'Humble Store', url: '/store/humble', store: 'humble' as const },
+  { title: 'Fanatical', url: '/store/fanatical', store: 'fanatical' as const },
 ];
 
 const bottomItems = [

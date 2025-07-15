@@ -311,24 +311,28 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Apply Changes */}
-        {hasChanges() && (
-          <Card className="md:col-span-2">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground">Unsaved Changes</h3>
-                  <p className="text-sm text-muted-foreground">
-                    You have unsaved changes. Click Apply to save your settings.
-                  </p>
-                </div>
-                <Button onClick={handleApplyChanges} className="bg-primary hover:bg-primary/90">
-                  Apply Changes
-                </Button>
+        {/* Apply Button - Always Visible */}
+        <Card className="md:col-span-2">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Apply Settings</h3>
+                <p className="text-sm text-muted-foreground">
+                  {hasChanges() 
+                    ? "You have unsaved changes. Click Apply to save your settings."
+                    : "All settings are saved and applied."}
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <Button 
+                onClick={handleApplyChanges} 
+                disabled={!hasChanges()}
+                className="bg-primary hover:bg-primary/90 disabled:opacity-50"
+              >
+                Apply Settings
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* About */}
         <Card className="md:col-span-2">

@@ -13,6 +13,10 @@ import FreeGames from "./pages/FreeGames";
 import Welcome from "./pages/Welcome";
 import GameDetails from "./pages/GameDetails";
 import NotFound from "./pages/NotFound";
+import AdvancedSearch from "./pages/AdvancedSearch";
+import Wishlist from "./pages/Wishlist";
+import Deals from "./pages/Deals";
+import Limited from "./pages/Limited";
 
 const queryClient = new QueryClient();
 
@@ -62,9 +66,10 @@ const App = () => {
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/free-games" element={<FreeGames />} />
                             <Route path="/game/:gameId" element={<GameDetails />} />
-                            <Route path="/search" element={<div className="p-8"><h1>Search Page - Coming Soon</h1></div>} />
-                            <Route path="/wishlist" element={<div className="p-8"><h1>Wishlist Page - Coming Soon</h1></div>} />
-                            <Route path="/deals" element={<div className="p-8"><h1>Deals Page - Coming Soon</h1></div>} />
+                            <Route path="/search" element={<AdvancedSearch />} />
+                            <Route path="/wishlist" element={<Wishlist />} />
+                            <Route path="/deals" element={<Deals />} />
+                            <Route path="/limited" element={<Limited />} />
                             <Route path="/store/*" element={<div className="p-8"><h1>Store Pages - Coming Soon</h1></div>} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
