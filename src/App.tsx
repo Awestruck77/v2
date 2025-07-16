@@ -54,13 +54,13 @@ const App = () => {
               <Route path="/*" element={
                 hasUserName ? (
                   <SidebarProvider>
-                    <div className="min-h-screen flex w-full">
+                    <div className="min-h-screen flex w-full bg-background">
                       <AppSidebar />
                       <div className="flex-1 flex flex-col">
-                        <header className="h-12 flex items-center border-b bg-card">
+                        <header className="h-12 flex items-center border-b bg-card border-border relative z-10">
                           <SidebarTrigger className="ml-4" />
                         </header>
-                        <main className="flex-1">
+                        <main className="flex-1 bg-background">
                           <Routes>
                             <Route path="/" element={<Index />} />
                             <Route path="/settings" element={<Settings />} />
