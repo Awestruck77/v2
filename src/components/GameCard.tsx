@@ -1,21 +1,23 @@
-import { Star, ExternalLink } from 'lucide-react';
+import { Star, ExternalLink, Heart, HeartOff } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StoreIcon } from '@/components/StoreIcon';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 interface Game {
   id: string;
   title: string;
   image: string;
   stores: Array<{
-    store: 'steam' | 'epic' | 'gog';
+    store: 'steam' | 'epic' | 'gog' | 'humble' | 'fanatical';
     price: number;
     originalPrice?: number;
     discount?: number;
     dealID?: string;
     storeID?: string;
+    url?: string;
   }>;
   rating: number;
   criticScore: number;
@@ -37,10 +39,33 @@ interface GameCardProps {
 
 export const GameCard = ({ game, currency }: GameCardProps) => {
   const navigate = useNavigate();
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  useEffect(() => {
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    setIsWishlisted(wishlist.some((item: any) => item.id === game.id));
+  }, [game.id]);
 
   const formatPrice = (price: number) => {
     if (price === 0) return 'FREE';
-    return `${currency.symbol}${price.toFixed(2)}`;
+    
+    // Format based on currency
+    switch (currency.currency) {
+      case 'USD':
+        return `$${price.toFixed(2)}`;
+      case 'EUR':
+        return `€${price.toFixed(2)}`;
+      case 'GBP':
+        return `£${price.toFixed(2)}`;
+      case 'INR':
+        return `₹${Math.round(price)}`;
+      case 'CAD':
+        return `C$${price.toFixed(2)}`;
+      case 'AUD':
+        return `A$${price.toFixed(2)}`;
+      default:
+        return `${currency.symbol}${price.toFixed(2)}`;
+    }
   };
 
   const getRatingColor = (score: number) => {
@@ -72,10 +97,17 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
   const handleStoreClick = (store: any, e: React.MouseEvent) => {
     e.stopPropagation();
     
+    if (store.url) {
+      window.open(store.url, '_blank');
+      return;
+    }
+
     const storeUrls: { [key: string]: string } = {
       steam: `https://store.steampowered.com/app/${game.steamAppID || ''}`,
       epic: 'https://store.epicgames.com',
       gog: 'https://www.gog.com',
+      humble: 'https://www.humblebundle.com/store',
+      fanatical: 'https://www.fanatical.com',
     };
 
     if (store.dealID) {
@@ -88,18 +120,53 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
     }
   };
 
+  const toggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    
+    if (isWishlisted) {
+      const updatedWishlist = wishlist.filter((item: any) => item.id !== game.id);
+      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+      setIsWishlisted(false);
+    } else {
+      const gameWithDate = { ...game, dateAdded: new Date().toISOString() };
+      wishlist.push(gameWithDate);
+      localStorage.setItem('wishlist', JSON.stringify(wishlist));
+      setIsWishlisted(true);
+    }
+  };
+
+  const getHighQualityImage = (game: Game) => {
+    // Try to get high quality Steam image first
+    if (game.steamAppID) {
+      return `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppID}/library_600x900.jpg`;
+    }
+    
+    // Fallback to original image or placeholder
+    return game.image || `https://via.placeholder.com/300x400/1a1a1a/888888?text=${encodeURIComponent(game.title)}`;
+  };
+
   return (
     <Card 
-      className="group relative overflow-hidden bg-game-card hover:bg-game-card-hover transition-all duration-300 border-border hover:border-primary/50 h-[480px] flex flex-col cursor-pointer"
+      className="group relative overflow-hidden bg-game-card hover:bg-game-card-hover transition-all duration-300 border-border hover:border-primary/50 flex flex-col cursor-pointer"
       onClick={handleGameClick}
     >
       {/* Image Container with overlay scores */}
       <div className="relative aspect-[3/4] overflow-hidden">
         <img
-          src={game.image}
+          src={getHighQualityImage(game)}
           alt={game.title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            // Try Steam header image as fallback
+            if (game.steamAppID && !target.src.includes('header.jpg')) {
+              target.src = `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppID}/header.jpg`;
+            } else {
+              target.src = `https://via.placeholder.com/300x400/1a1a1a/888888?text=${encodeURIComponent(game.title)}`;
+            }
+          }}
         />
         
         {/* Gradient overlay */}
@@ -121,9 +188,23 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
           </div>
         </div>
 
+        {/* Wishlist Button */}
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={toggleWishlist}
+          className="absolute top-3 right-3 h-8 w-8 p-0 bg-black/70 hover:bg-black/90 border-0"
+        >
+          {isWishlisted ? (
+            <Heart className="w-4 h-4 text-red-500 fill-current" />
+          ) : (
+            <HeartOff className="w-4 h-4 text-white" />
+          )}
+        </Button>
+
         {/* Discount Badge */}
         {bestDeal.discount && bestDeal.discount > 0 && (
-          <div className="absolute top-3 right-3">
+          <div className="absolute bottom-3 right-3">
             <Badge className="bg-gradient-discount text-white border-0 font-bold">
               -{bestDeal.discount}%
             </Badge>
@@ -156,8 +237,11 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
           )}
         </div>
 
-        {/* Stores and Prices */}
+        {/* Store Prices List */}
         <div className="space-y-2 mt-auto">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Available at:
+          </h4>
           {game.stores.map((store) => (
             <div 
               key={store.store} 
@@ -167,8 +251,17 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
               <div className="flex items-center gap-2">
                 <StoreIcon store={store.store} className="w-4 h-4" />
                 <span className="text-sm font-medium text-foreground capitalize">
-                  {store.store}
+                  {store.store === 'gog' ? 'GOG' : 
+                   store.store === 'epic' ? 'Epic' :
+                   store.store === 'humble' ? 'Humble' :
+                   store.store === 'fanatical' ? 'Fanatical' :
+                   'Steam'}
                 </span>
+                {store.discount && store.discount > 0 && (
+                  <Badge className="bg-gradient-discount text-white border-0 text-xs">
+                    -{store.discount}%
+                  </Badge>
+                )}
               </div>
               
               <div className="flex items-center gap-2">

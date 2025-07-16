@@ -7,6 +7,7 @@ import { GameCard } from '@/components/GameCard';
 import { ErrorDialog } from '@/components/ErrorDialog';
 import { useToast } from '@/hooks/use-toast';
 import { getDeals, type CheapSharkDeal, STORE_NAMES, STORE_IDS, getHighQualityImage } from '@/lib/cheapshark-api';
+import { REGIONAL_PRICING, getRegionalPrice, type RegionalPricing } from '@/lib/regional-pricing';
 
 // Enhanced Game interface for CheapShark integration
 interface Game {
@@ -15,106 +16,19 @@ interface Game {
   image: string;
   description?: string;
   stores: Array<{
-    store: 'steam' | 'epic' | 'gog';
+    store: 'steam' | 'epic' | 'gog' | 'humble' | 'fanatical';
     price: number;
     originalPrice?: number;
     discount?: number;
     dealID?: string;
     storeID?: string;
+    url?: string;
   }>;
   rating: number;
   criticScore: number;
   tags: string[];
   steamAppID?: string;
 }
-
-interface Region {
-  code: string;
-  name: string;
-  currency: string;
-  symbol: string;
-}
-
-const REGIONS: Region[] = [
-  { code: 'US', name: 'United States', currency: 'USD', symbol: '$' },
-  { code: 'GB', name: 'United Kingdom', currency: 'GBP', symbol: '£' },
-  { code: 'DE', name: 'Germany', currency: 'EUR', symbol: '€' },
-  { code: 'IN', name: 'India', currency: 'INR', symbol: '₹' },
-  { code: 'CA', name: 'Canada', currency: 'CAD', symbol: 'C$' },
-  { code: 'AU', name: 'Australia', currency: 'AUD', symbol: 'A$' },
-];
-
-// Regional pricing multipliers (approximate conversion rates)
-const REGIONAL_PRICING = {
-  US: { multiplier: 1 },
-  GB: { multiplier: 0.79 },
-  DE: { multiplier: 0.85 },
-  IN: { multiplier: 0.013 }, // 1 USD ≈ 83 INR
-  CA: { multiplier: 1.35 },
-  AU: { multiplier: 1.55 },
-};
-
-// Sample games data
-const SAMPLE_GAMES: Game[] = [
-  {
-    id: '1',
-    title: 'NBA 2K25',
-    image: 'https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?w=300&h=400&fit=crop',
-    stores: [
-      { store: 'steam', price: 69.99, originalPrice: 69.99 },
-      { store: 'epic', price: 59.99, originalPrice: 69.99, discount: 14 },
-    ],
-    rating: 7.6,
-    criticScore: 76,
-    tags: ['Sports', 'Basketball', 'Simulation'],
-  },
-  {
-    id: '2',
-    title: 'Suicide Squad: Kill the Justice League',
-    image: 'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=300&h=400&fit=crop',
-    stores: [
-      { store: 'steam', price: 6.99, originalPrice: 69.99, discount: 90 },
-      { store: 'epic', price: 6.99, originalPrice: 69.99, discount: 90 },
-    ],
-    rating: 6.3,
-    criticScore: 63,
-    tags: ['Action', 'Adventure', 'Superhero'],
-  },
-  {
-    id: '3',
-    title: 'Figment 2: Creed Valley',
-    image: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=300&h=400&fit=crop',
-    stores: [
-      { store: 'steam', price: 0.00, originalPrice: 24.99, discount: 100 },
-      { store: 'epic', price: 0.00, originalPrice: 24.99, discount: 100 },
-    ],
-    rating: 7.6,
-    criticScore: 76,
-    tags: ['Adventure', 'Indie', 'Fantasy'],
-  },
-  {
-    id: '4',
-    title: 'Rims Racing: Ultimate Edition',
-    image: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=300&h=400&fit=crop',
-    stores: [
-      { store: 'steam', price: 6.95, originalPrice: 69.50, discount: 90 },
-    ],
-    rating: 7.2,
-    criticScore: 72,
-    tags: ['Racing', 'Simulation', 'Motorcycles'],
-  },
-  {
-    id: '5',
-    title: 'Strange Brigade - Deluxe Edition',
-    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=300&h=400&fit=crop',
-    stores: [
-      { store: 'steam', price: 8.99, originalPrice: 89.99, discount: 91 },
-    ],
-    rating: 7.4,
-    criticScore: 74,
-    tags: ['Action', 'Co-op', 'Adventure'],
-  },
-];
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,50 +40,47 @@ const Index = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const currentRegion = REGIONS.find(r => r.code === selectedRegion) || REGIONS[0];
+  const currentRegion = REGIONAL_PRICING[selectedRegion] || REGIONAL_PRICING['US'];
 
-  // Apply regional pricing - accurate conversion
-  const getRegionalPrice = (basePriceUSD: number) => {
-    if (selectedRegion === 'US') return basePriceUSD;
-    
-    const pricing = REGIONAL_PRICING[selectedRegion as keyof typeof REGIONAL_PRICING];
-    if (!pricing) return basePriceUSD;
-    
-    // For India, convert USD to INR properly
-    if (selectedRegion === 'IN') {
-      return Number((basePriceUSD / pricing.multiplier).toFixed(0)); // No decimals for INR
-    }
-    
-    return Number((basePriceUSD / pricing.multiplier).toFixed(2));
-  };
-
-  // Convert CheapShark deals to our Game format
+  // Convert CheapShark deals to our Game format with proper regional pricing
   const convertDealsToGames = (deals: CheapSharkDeal[]): Game[] => {
-    return deals.map(deal => ({
-      id: deal.gameID,
-      title: deal.title,
-      // Use library cover image for better aspect ratio and quality
-      image: deal.steamAppID ? getHighQualityImage(deal.steamAppID, 'library') : deal.thumb,
-      description: '', // Will be filled by game details API later
-      steamAppID: deal.steamAppID,
-      stores: [{
-        store: getStoreType(deal.storeID),
-        price: parseFloat(deal.salePrice),
-        originalPrice: parseFloat(deal.normalPrice),
-        discount: Math.round(parseFloat(deal.savings)),
-        dealID: deal.dealID,
-        storeID: deal.storeID
-      }],
-      rating: deal.steamRatingPercent ? parseFloat(deal.steamRatingPercent) / 10 : 7.5,
-      criticScore: deal.metacriticScore ? parseInt(deal.metacriticScore) : 75,
-      tags: ['Action', 'Adventure'] // Placeholder - would need additional API for real tags
-    }));
+    return deals.map(deal => {
+      const storeType = getStoreType(deal.storeID);
+      const basePrice = parseFloat(deal.salePrice);
+      const baseOriginalPrice = parseFloat(deal.normalPrice);
+      
+      // Apply regional pricing
+      const regionalPrice = getRegionalPrice(basePrice, storeType, selectedRegion);
+      const regionalOriginalPrice = baseOriginalPrice > basePrice ? 
+        getRegionalPrice(baseOriginalPrice, storeType, selectedRegion) : undefined;
+
+      return {
+        id: deal.gameID,
+        title: deal.title,
+        image: deal.steamAppID ? getHighQualityImage(deal.steamAppID, 'library') : deal.thumb,
+        description: '',
+        steamAppID: deal.steamAppID,
+        stores: [{
+          store: storeType,
+          price: regionalPrice,
+          originalPrice: regionalOriginalPrice,
+          discount: Math.round(parseFloat(deal.savings)),
+          dealID: deal.dealID,
+          storeID: deal.storeID
+        }],
+        rating: deal.steamRatingPercent ? parseFloat(deal.steamRatingPercent) / 10 : 7.5,
+        criticScore: deal.metacriticScore ? parseInt(deal.metacriticScore) : 75,
+        tags: ['Action', 'Adventure'] // Placeholder - would need additional API for real tags
+      };
+    });
   };
 
-  const getStoreType = (storeID: string): 'steam' | 'epic' | 'gog' => {
+  const getStoreType = (storeID: string): 'steam' | 'epic' | 'gog' | 'humble' | 'fanatical' => {
     if (storeID === '1') return 'steam';
     if (storeID === '25') return 'epic';
     if (storeID === '7') return 'gog';
+    if (storeID === '11') return 'humble';
+    if (storeID === '15') return 'fanatical';
     return 'steam'; // default fallback
   };
 
@@ -204,10 +115,10 @@ const Index = () => {
     }
   };
 
-  // Load deals on component mount
+  // Load deals on component mount and when region changes
   useEffect(() => {
     loadGameDeals();
-  }, []);
+  }, [selectedRegion]);
 
   // Filter games based on search
   const filteredGames = games.filter(game =>
@@ -228,7 +139,7 @@ const Index = () => {
     localStorage.setItem('selectedRegion', regionCode);
     toast({
       title: "Region changed",
-      description: `Switched to ${REGIONS.find(r => r.code === regionCode)?.name}. Prices updated.`,
+      description: `Switched to ${REGIONAL_PRICING[regionCode]?.name}. Prices updated.`,
     });
   };
 
@@ -259,14 +170,14 @@ const Index = () => {
               </div>
 
               <Select value={selectedRegion} onValueChange={handleRegionChange}>
-                <SelectTrigger className="w-36 h-12 bg-muted border-border">
-                  <Globe className="w-4 h-4 mr-1" />
+                <SelectTrigger className="w-48 h-12 bg-muted border-border">
+                  <Globe className="w-4 h-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {REGIONS.map((region) => (
+                  {Object.values(REGIONAL_PRICING).map((region) => (
                     <SelectItem key={region.code} value={region.code}>
-                      {region.code}
+                      {region.name} ({region.currency})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -291,7 +202,7 @@ const Index = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="h-[480px] bg-game-card rounded-lg animate-pulse" />
+              <div key={i} className="h-[600px] bg-game-card rounded-lg animate-pulse" />
             ))}
           </div>
         ) : (
@@ -299,14 +210,7 @@ const Index = () => {
             {filteredGames.map((game) => (
               <GameCard
                 key={game.id}
-                game={{
-                  ...game,
-                  stores: game.stores.map(store => ({
-                    ...store,
-                    price: getRegionalPrice(store.price),
-                    originalPrice: store.originalPrice ? getRegionalPrice(store.originalPrice) : undefined,
-                  }))
-                }}
+                game={game}
                 currency={currentRegion}
               />
             ))}

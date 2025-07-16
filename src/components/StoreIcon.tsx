@@ -16,29 +16,29 @@ export const StoreIcon = ({ store, className = "w-4 h-4" }: StoreIconProps) => {
     case 'epic':
       return (
         <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2.5 18.5h19v-1.5h-19v1.5zm0-3h19v-1.5h-19v1.5zm0-3h19v-1.5h-19v1.5zm0-3h19v-1.5h-19v1.5zm0-3h19v-1.5h-19v1.5z"/>
-          <path d="M12 3l10.39 6.5v2L12 18 1.61 11.5v-2L12 3zm0 2.48L4.81 10 12 14.52 19.19 10 12 5.48z"/>
+          <path d="M4.2 0h15.6c2.3 0 4.2 1.9 4.2 4.2v15.6c0 2.3-1.9 4.2-4.2 4.2H4.2C1.9 24 0 22.1 0 19.8V4.2C0 1.9 1.9 0 4.2 0z"/>
+          <path d="M18.5 7.4c0-.8-.7-1.5-1.5-1.5H7c-.8 0-1.5.7-1.5 1.5v9.2c0 .8.7 1.5 1.5 1.5h10c.8 0 1.5-.7 1.5-1.5V7.4zM16.5 15H7.5V9h9v6z" fill="white"/>
         </svg>
       );
     case 'gog':
       return (
-        <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2l-2 2 2 2 2-2-2-2zm-6 4l-2 2 2 2 2-2-2-2zm12 0l-2 2 2 2 2-2-2-2zm-6 4l-2 2 2 2 2-2-2-2zm-6 4l-2 2 2 2 2-2-2-2zm12 0l-2 2 2 2 2-2-2-2zm-6 4l-2 2 2 2 2-2-2-2z"/>
+        <svg className={`${className} text-[#86328A]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16c-.169-.185-.459-.185-.628 0l-1.557 1.557-1.557-1.557c-.169-.185-.459-.185-.628 0-.185.169-.185.459 0 .628L14.755 10.2l-1.557 1.557c-.185.169-.185.459 0 .628.169.185.459.185.628 0l1.557-1.557 1.557 1.557c.169.185.459.185.628 0 .185-.169.185-.459 0-.628L15.811 10.2l1.557-1.557c.185-.169.185-.459 0-.628z"/>
+          <path d="M8.4 8.4c-.663 0-1.2.537-1.2 1.2v4.8c0 .663.537 1.2 1.2 1.2h1.2c.663 0 1.2-.537 1.2-1.2V9.6c0-.663-.537-1.2-1.2-1.2H8.4z"/>
         </svg>
       );
     case 'humble':
       return (
-        <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 3L3 7.5v1l9 4.5 9-4.5v-1L12 3zm0 2.2l6.5 3.3L12 11.8 5.5 8.5 12 5.2z"/>
-          <path d="M3 12.5l9 4.5 9-4.5v1l-9 4.5-9-4.5v-1z"/>
-          <path d="M3 16.5l9 4.5 9-4.5v1l-9 4.5-9-4.5v-1z"/>
+        <svg className={`${className} text-[#cc2929]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L0 6.928v10.144L12 24l12-6.928V6.928L12 0zm8.4 15.857L12 20.571l-8.4-4.714V8.143L12 3.429l8.4 4.714v7.714z"/>
+          <path d="M12 6L6 9v6l6 3 6-3V9l-6-3zm4.2 7.714L12 16.286l-4.2-2.572V10.286L12 7.714l4.2 2.572v3.428z"/>
         </svg>
       );
     case 'fanatical':
       return (
-        <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2l2.5 7.5h8l-6.5 4.5 2.5 7.5L12 17l-6.5 4.5 2.5-7.5L1.5 9.5h8L12 2z"/>
-          <path d="M12 6.5L10.5 11h-3l2.5 1.5-1 3L12 13l2.5 2.5-1-3 2.5-1.5h-3L12 6.5z"/>
+        <svg className={`${className} text-[#15BFFF]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          <path d="M12 6.5l1.545 3.13L17 10.135l-2.5 2.435L15.09 16 12 14.385 8.91 16l.59-3.43L7 10.135l3.455-.505L12 6.5z" fill="white"/>
         </svg>
       );
     default:

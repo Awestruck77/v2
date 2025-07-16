@@ -17,6 +17,11 @@ import AdvancedSearch from "./pages/AdvancedSearch";
 import Wishlist from "./pages/Wishlist";
 import Deals from "./pages/Deals";
 import Limited from "./pages/Limited";
+import Steam from "./pages/storefront/Steam";
+import Epic from "./pages/storefront/Epic";
+import GOG from "./pages/storefront/GOG";
+import Humble from "./pages/storefront/Humble";
+import Fanatical from "./pages/storefront/Fanatical";
 
 const queryClient = new QueryClient();
 
@@ -70,7 +75,11 @@ const App = () => {
                             <Route path="/wishlist" element={<Wishlist />} />
                             <Route path="/deals" element={<Deals />} />
                             <Route path="/limited" element={<Limited />} />
-                            <Route path="/store/*" element={<div className="p-8"><h1>Store Pages - Coming Soon</h1></div>} />
+                            <Route path="/store/steam" element={<Steam />} />
+                            <Route path="/store/epic" element={<Epic />} />
+                            <Route path="/store/gog" element={<GOG />} />
+                            <Route path="/store/humble" element={<Humble />} />
+                            <Route path="/store/fanatical" element={<Fanatical />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </main>

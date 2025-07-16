@@ -171,3 +171,36 @@ export function getHighQualityImage(steamAppID: string, imageType: 'header' | 'c
   };
   return imageMap[imageType];
 }
+
+// Enhanced function to get deals from multiple stores
+export async function getMultiStoreDeals(gameTitle?: string): Promise<CheapSharkDeal[]> {
+  const storeIds = ['1', '7', '25', '11', '15']; // Steam, GOG, Epic, Humble, Fanatical
+  const allDeals: CheapSharkDeal[] = [];
+
+  for (const storeId of storeIds) {
+    try {
+      const deals = await getDeals({
+        storeID: storeId,
+        pageSize: 10,
+        sortBy: 'Savings',
+        desc: true,
+        onSale: true
+      });
+      allDeals.push(...deals);
+    } catch (error) {
+      console.error(`Error fetching deals from store ${storeId}:`, error);
+    }
+  }
+
+  // Remove duplicates based on gameID and combine stores for same game
+  const gameMap = new Map<string, CheapSharkDeal>();
+  
+  allDeals.forEach(deal => {
+    const existingDeal = gameMap.get(deal.gameID);
+    if (!existingDeal || parseFloat(deal.salePrice) < parseFloat(existingDeal.salePrice)) {
+      gameMap.set(deal.gameID, deal);
+    }
+  });
+
+  return Array.from(gameMap.values());
+}
