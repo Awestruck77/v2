@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Gift, Store, Settings, Search, Heart, TrendingUp } from 'lucide-react';
+import { Home, Gift, Store, Settings, Search, Heart, TrendingUp, Clock } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -20,7 +20,7 @@ const mainItems = [
   { title: 'Wishlist', url: '/wishlist', icon: Heart },
   { title: 'Deals', url: '/deals', icon: TrendingUp },
   { title: 'Free Games', url: '/free-games', icon: Gift },
-  { title: 'Limited Free', url: '/limited', icon: Gift },
+  { title: 'Limited Time', url: '/limited', icon: Clock },
 ];
 
 const storeItems = [

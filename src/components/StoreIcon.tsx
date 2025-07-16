@@ -16,27 +16,29 @@ export const StoreIcon = ({ store, className = "w-4 h-4" }: StoreIconProps) => {
     case 'epic':
       return (
         <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M5.5 3h13v18h-13V3zm2 2v14h9V5h-9zm1 1h7v1h-7V6zm0 2h7v1h-7V8zm0 2h5v1h-5v-1z"/>
-          <path d="M9 13h3v1H9v-1zm0 2h2v1H9v-1z"/>
+          <path d="M2.5 18.5h19v-1.5h-19v1.5zm0-3h19v-1.5h-19v1.5zm0-3h19v-1.5h-19v1.5zm0-3h19v-1.5h-19v1.5zm0-3h19v-1.5h-19v1.5z"/>
+          <path d="M12 3l10.39 6.5v2L12 18 1.61 11.5v-2L12 3zm0 2.48L4.81 10 12 14.52 19.19 10 12 5.48z"/>
         </svg>
       );
     case 'gog':
       return (
         <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-          <path d="M8 8h8v8H8V8zm2 2v4h4v-4h-4z"/>
+          <path d="M12 2l-2 2 2 2 2-2-2-2zm-6 4l-2 2 2 2 2-2-2-2zm12 0l-2 2 2 2 2-2-2-2zm-6 4l-2 2 2 2 2-2-2-2zm-6 4l-2 2 2 2 2-2-2-2zm12 0l-2 2 2 2 2-2-2-2zm-6 4l-2 2 2 2 2-2-2-2z"/>
         </svg>
       );
     case 'humble':
       return (
         <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          <path d="M12 3L3 7.5v1l9 4.5 9-4.5v-1L12 3zm0 2.2l6.5 3.3L12 11.8 5.5 8.5 12 5.2z"/>
+          <path d="M3 12.5l9 4.5 9-4.5v1l-9 4.5-9-4.5v-1z"/>
+          <path d="M3 16.5l9 4.5 9-4.5v1l-9 4.5-9-4.5v-1z"/>
         </svg>
       );
     case 'fanatical':
       return (
         <svg className={`${className} text-foreground`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          <path d="M12 2l2.5 7.5h8l-6.5 4.5 2.5 7.5L12 17l-6.5 4.5 2.5-7.5L1.5 9.5h8L12 2z"/>
+          <path d="M12 6.5L10.5 11h-3l2.5 1.5-1 3L12 13l2.5 2.5-1-3 2.5-1.5h-3L12 6.5z"/>
         </svg>
       );
     default:
