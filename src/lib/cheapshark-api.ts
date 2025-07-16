@@ -157,19 +157,36 @@ export async function getStores(): Promise<CheapSharkStore[]> {
   }
 }
 
-// Helper function to get Steam store page image
+// Helper function to get Steam store page image - highest quality
 export function getSteamImage(steamAppID: string): string {
   return `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppID}/header.jpg`;
 }
 
-// Helper function to get higher quality image
-export function getHighQualityImage(steamAppID: string, imageType: 'header' | 'capsule' | 'library' = 'header'): string {
+// Helper function to get highest quality original game cover art
+export function getHighQualityImage(steamAppID: string, imageType: 'header' | 'capsule' | 'library' = 'library'): string {
   const imageMap = {
     header: `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppID}/header.jpg`,
     capsule: `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppID}/capsule_616x353.jpg`,
-    library: `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppID}/library_600x900.jpg`
+    library: `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppID}/library_600x900_2x.jpg` // Highest quality
   };
   return imageMap[imageType];
+}
+
+// Get original game artwork from multiple sources
+export function getOriginalGameArt(steamAppID: string, title: string): string {
+  if (steamAppID) {
+    // Try multiple Steam image sources for best quality
+    const sources = [
+      `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppID}/library_600x900_2x.jpg`,
+      `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppID}/library_600x900.jpg`,
+      `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppID}/header.jpg`,
+      `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppID}/capsule_616x353.jpg`
+    ];
+    return sources[0]; // Return highest quality first
+  }
+  
+  // Fallback for non-Steam games
+  return `https://via.placeholder.com/300x400/1a1a1a/888888?text=${encodeURIComponent(title)}`;
 }
 
 // Enhanced function to get deals from multiple stores

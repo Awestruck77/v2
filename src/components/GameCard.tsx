@@ -23,6 +23,8 @@ interface Game {
   criticScore: number;
   tags: string[];
   steamAppID?: string;
+  developer?: string;
+  publisher?: string;
 }
 
 interface Region {
@@ -68,20 +70,6 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
     }
   };
 
-  const getRatingColor = (score: number) => {
-    if (score >= 8) return 'text-green-400';
-    if (score >= 7) return 'text-yellow-400';
-    if (score >= 6) return 'text-orange-400';
-    return 'text-red-400';
-  };
-
-  const getCriticScoreColor = (score: number) => {
-    if (score >= 80) return 'bg-green-600';
-    if (score >= 70) return 'bg-yellow-600';
-    if (score >= 60) return 'bg-orange-600';
-    return 'bg-red-600';
-  };
-
   const getBestDeal = () => {
     return game.stores.reduce((best, current) => 
       current.price < best.price ? current : best
@@ -120,6 +108,11 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
     }
   };
 
+  const handleViewBestPrice = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleStoreClick(bestDeal, e);
+  };
+
   const toggleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
     const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
@@ -139,19 +132,30 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
   const getHighQualityImage = (game: Game) => {
     // Try to get high quality Steam image first
     if (game.steamAppID) {
-      return `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppID}/library_600x900.jpg`;
+      return `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppID}/library_600x900_2x.jpg`;
     }
     
     // Fallback to original image or placeholder
     return game.image || `https://via.placeholder.com/300x400/1a1a1a/888888?text=${encodeURIComponent(game.title)}`;
   };
 
+  const getStoreName = (store: string) => {
+    switch (store) {
+      case 'steam': return 'Steam';
+      case 'epic': return 'Epic';
+      case 'gog': return 'Gog';
+      case 'humble': return 'Humble';
+      case 'fanatical': return 'Fanatical';
+      default: return store;
+    }
+  };
+
   return (
     <Card 
-      className="group relative overflow-hidden bg-game-card hover:bg-game-card-hover transition-all duration-300 border-border hover:border-primary/50 flex flex-col cursor-pointer"
+      className="group relative overflow-hidden bg-white hover:shadow-lg transition-all duration-300 border border-gray-200 flex flex-col cursor-pointer"
       onClick={handleGameClick}
     >
-      {/* Image Container with overlay scores */}
+      {/* Image Container with critic score overlay */}
       <div className="relative aspect-[3/4] overflow-hidden">
         <img
           src={getHighQualityImage(game)}
@@ -169,31 +173,20 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
           }}
         />
         
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
-        
-        {/* Top left scores */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
-          {/* Critic Score */}
-          <div className={`px-2 py-1 rounded text-white text-xs font-bold ${getCriticScoreColor(game.criticScore)}`}>
-            {game.criticScore}
-          </div>
-          
-          {/* User Rating */}
-          <div className="flex items-center gap-1 bg-black/70 px-2 py-1 rounded">
-            <Star className={`w-3 h-3 fill-current ${getRatingColor(game.rating)}`} />
-            <span className={`text-xs font-medium ${getRatingColor(game.rating)}`}>
-              {game.rating.toFixed(1)}
-            </span>
+        {/* Critic Score - Top Right with black background */}
+        <div className="absolute top-3 right-3">
+          <div className="bg-black text-white px-2 py-1 rounded flex items-center gap-1">
+            <Star className="w-3 h-3 fill-current text-yellow-400" />
+            <span className="text-sm font-bold">{game.criticScore}</span>
           </div>
         </div>
 
-        {/* Wishlist Button */}
+        {/* Wishlist Button - Top Left */}
         <Button
           size="sm"
           variant="secondary"
           onClick={toggleWishlist}
-          className="absolute top-3 right-3 h-8 w-8 p-0 bg-black/70 hover:bg-black/90 border-0"
+          className="absolute top-3 left-3 h-8 w-8 p-0 bg-black/70 hover:bg-black/90 border-0"
         >
           {isWishlisted ? (
             <Heart className="w-4 h-4 text-red-500 fill-current" />
@@ -201,96 +194,99 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
             <HeartOff className="w-4 h-4 text-white" />
           )}
         </Button>
-
-        {/* Discount Badge */}
-        {bestDeal.discount && bestDeal.discount > 0 && (
-          <div className="absolute bottom-3 right-3">
-            <Badge className="bg-gradient-discount text-white border-0 font-bold">
-              -{bestDeal.discount}%
-            </Badge>
-          </div>
-        )}
       </div>
 
       {/* Content */}
-      <div className="p-4 flex-1 flex flex-col">
+      <div className="p-4 flex-1 flex flex-col bg-white">
         {/* Title */}
-        <h3 className="font-bold text-foreground text-sm leading-tight mb-3 line-clamp-2 min-h-[2.5rem]">
+        <h3 className="font-bold text-gray-900 text-base leading-tight mb-2 line-clamp-2 min-h-[2.5rem]">
           {game.title}
         </h3>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1 mb-3">
-          {game.tags.slice(0, 2).map((tag) => (
+        {/* Developer/Publisher */}
+        <p className="text-sm text-gray-500 mb-3">
+          {game.developer || game.publisher || 'Unknown Developer'}
+        </p>
+
+        {/* All Genre Tags */}
+        <div className="flex flex-wrap gap-1 mb-4">
+          {game.tags.map((tag) => (
             <Badge
               key={tag}
               variant="secondary"
-              className="text-xs px-2 py-0.5 bg-secondary/50 text-secondary-foreground"
+              className="text-xs px-2 py-1 bg-blue-100 text-blue-800 border-0"
             >
               {tag}
             </Badge>
           ))}
-          {game.tags.length > 2 && (
-            <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-secondary/50 text-muted-foreground">
-              +{game.tags.length - 2}
-            </Badge>
-          )}
         </div>
 
-        {/* Store Prices List */}
-        <div className="space-y-2 mt-auto">
-          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Available at:
-          </h4>
-          {game.stores.map((store) => (
-            <div 
-              key={store.store} 
-              className="flex items-center justify-between py-2 px-3 bg-secondary/30 rounded-lg hover:bg-secondary/50 transition-colors cursor-pointer"
-              onClick={(e) => handleStoreClick(store, e)}
-            >
-              <div className="flex items-center gap-2">
-                <StoreIcon store={store.store} className="w-4 h-4" />
-                <span className="text-sm font-medium text-foreground capitalize">
-                  {store.store === 'gog' ? 'GOG' : 
-                   store.store === 'epic' ? 'Epic' :
-                   store.store === 'humble' ? 'Humble' :
-                   store.store === 'fanatical' ? 'Fanatical' :
-                   'Steam'}
-                </span>
-                {store.discount && store.discount > 0 && (
-                  <Badge className="bg-gradient-discount text-white border-0 text-xs">
-                    -{store.discount}%
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {store.originalPrice && store.originalPrice !== store.price && (
-                  <span className="text-xs text-muted-foreground line-through">
-                    {formatPrice(store.originalPrice)}
-                  </span>
-                )}
-                <span className={`font-bold text-sm ${store.price === 0 ? 'text-success' : 'text-price-highlight'}`}>
-                  {formatPrice(store.price)}
-                </span>
-                <ExternalLink className="w-3 h-3 text-muted-foreground" />
-              </div>
+        {/* Best Price Section */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Best Price</span>
+            <div className="flex items-center gap-2">
+              <StoreIcon store={bestDeal.store} className="w-4 h-4" />
             </div>
-          ))}
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {bestDeal.originalPrice && bestDeal.originalPrice !== bestDeal.price && (
+                <span className="text-sm text-gray-400 line-through">
+                  {formatPrice(bestDeal.originalPrice)}
+                </span>
+              )}
+              <span className="text-lg font-bold text-green-600">
+                {formatPrice(bestDeal.price)}
+              </span>
+            </div>
+            
+            <Button
+              size="sm"
+              onClick={handleViewBestPrice}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-sm"
+            >
+              <ExternalLink className="w-3 h-3 mr-1" />
+              View
+            </Button>
+          </div>
         </div>
 
-        {/* Best Deal Button */}
-        <Button 
-          className="w-full mt-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-          size="sm"
-          onClick={(e) => handleStoreClick(bestDeal, e)}
-        >
-          <ExternalLink className="w-3 h-3 mr-2" />
-          Best: {formatPrice(bestDeal.price)}
-          {bestDeal.discount && bestDeal.discount > 0 && (
-            <span className="ml-1 text-xs opacity-90">(-{bestDeal.discount}%)</span>
-          )}
-        </Button>
+        {/* All Stores Section */}
+        <div className="mt-auto">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">All Stores</h4>
+          <div className="space-y-2">
+            {game.stores.map((store) => (
+              <div 
+                key={store.store} 
+                className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                onClick={(e) => handleStoreClick(store, e)}
+              >
+                <div className="flex items-center gap-2">
+                  <StoreIcon store={store.store} className="w-4 h-4" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {getStoreName(store.store)}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    {store.originalPrice && store.originalPrice !== store.price && (
+                      <div className="text-xs text-gray-400 line-through">
+                        {formatPrice(store.originalPrice)}
+                      </div>
+                    )}
+                    <div className="text-sm font-bold text-gray-900">
+                      {formatPrice(store.price)}
+                    </div>
+                  </div>
+                  <ExternalLink className="w-3 h-3 text-gray-400" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </Card>
   );
