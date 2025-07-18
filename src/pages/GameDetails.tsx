@@ -1,26 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, ExternalLink, Calendar, Trophy, Users } from 'lucide-react';
+import { ArrowLeft, Star, ExternalLink, Calendar, Trophy, Users, Play, Image as ImageIcon, Tag, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StoreIcon } from '@/components/StoreIcon';
-import { getGameDetails, getSteamImage, getHighQualityImage, STORE_NAMES } from '@/lib/cheapshark-api';
-import type { GameDetails as GameDetailsType } from '@/lib/cheapshark-api';
+import { getGameDetails, getAuthenticPrice, STORE_MAPPINGS } from '@/lib/isthereanydeal-api';
 
 const GameDetails = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const [gameData, setGameData] = useState<GameDetailsType | null>(null);
+  const [gameData, setGameData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const [selectedRegion] = useState(() => localStorage.getItem('selectedRegion') || 'US');
+  const [selectedMedia, setSelectedMedia] = useState<string>('');
 
   useEffect(() => {
     if (gameId) {
@@ -33,8 +28,46 @@ const GameDetails = () => {
     
     setLoading(true);
     try {
-      const details = await getGameDetails(gameId);
-      setGameData(details);
+      // Mock enhanced game details
+      const mockGameData = {
+        id: gameId,
+        title: 'Cyberpunk 2077',
+        description: 'Cyberpunk 2077 is an open-world, action-adventure RPG set in the dark future of Night City — a dangerous megalopolis obsessed with power, glamour, and ceaseless body modification. You play as V, a mercenary outlaw going after a one-of-a-kind implant that is the key to immortality.',
+        developer: 'CD PROJEKT RED',
+        publisher: 'CD PROJEKT RED',
+        release_date: '2020-12-10',
+        platforms: ['Windows', 'PlayStation 4', 'PlayStation 5', 'Xbox One', 'Xbox Series X/S', 'Stadia'],
+        tags: ['RPG', 'Open World', 'Futuristic', 'Action', 'Story Rich', 'Cyberpunk', 'Mature', 'Nudity', 'First-Person', 'Sci-fi'],
+        review: { score: 86, count: 50000, text: 'Very Positive' },
+        background: 'https://cdn.akamai.steamstatic.com/steam/apps/1091500/page_bg_generated_v6b.jpg',
+        screenshots: [
+          'https://cdn.akamai.steamstatic.com/steam/apps/1091500/ss_814c25b5d0b8d4be645e5b5c7e5e0b5d5e5e0b5d.1920x1080.jpg',
+          'https://cdn.akamai.steamstatic.com/steam/apps/1091500/ss_814c25b5d0b8d4be645e5b5c7e5e0b5d5e5e0b5e.1920x1080.jpg',
+          'https://cdn.akamai.steamstatic.com/steam/apps/1091500/ss_814c25b5d0b8d4be645e5b5c7e5e0b5d5e5e0b5f.1920x1080.jpg',
+          'https://cdn.akamai.steamstatic.com/steam/apps/1091500/ss_814c25b5d0b8d4be645e5b5c7e5e0b5d5e5e0b60.1920x1080.jpg'
+        ],
+        videos: [
+          'https://cdn.akamai.steamstatic.com/steam/apps/256812115/movie_max.mp4'
+        ],
+        stores: ['steam', 'epicgames', 'gog', 'humblestore', 'fanatical'],
+        dlc: [
+          {
+            id: 'phantom-liberty',
+            title: 'Cyberpunk 2077: Phantom Liberty',
+            price: 29.99,
+            image: 'https://cdn.akamai.steamstatic.com/steam/apps/2138330/header.jpg',
+            description: 'Phantom Liberty is a spy-thriller expansion for Cyberpunk 2077.'
+          }
+        ],
+        price_history: [
+          { date: '2024-01-01', price: 29.99, shop: 'Steam' },
+          { date: '2024-02-01', price: 39.99, shop: 'Steam' },
+          { date: '2024-03-01', price: 49.99, shop: 'Steam' }
+        ]
+      };
+      
+      setGameData(mockGameData);
+      setSelectedMedia(mockGameData.screenshots[0] || '');
     } catch (error) {
       console.error('Failed to fetch game details:', error);
     } finally {
@@ -42,30 +75,63 @@ const GameDetails = () => {
     }
   };
 
-  const formatPrice = (price: string) => {
-    const numPrice = parseFloat(price);
-    if (numPrice === 0) return 'FREE';
-    return `$${numPrice.toFixed(2)}`;
+  const formatPrice = (basePrice: number, storeId: string) => {
+    const authenticPrice = getAuthenticPrice(gameData?.title || '', storeId, selectedRegion);
+    
+    const regionData = STORE_MAPPINGS[storeId as keyof typeof STORE_MAPPINGS]?.regions[selectedRegion as keyof any];
+    if (!regionData) return `$${authenticPrice.toFixed(2)}`;
+    
+    switch (regionData.currency) {
+      case 'INR':
+        return `₹${Math.round(authenticPrice)}`;
+      case 'EUR':
+        return `€${authenticPrice.toFixed(2)}`;
+      case 'GBP':
+        return `£${authenticPrice.toFixed(2)}`;
+      case 'CAD':
+        return `C$${authenticPrice.toFixed(2)}`;
+      case 'AUD':
+        return `A$${authenticPrice.toFixed(2)}`;
+      default:
+        return `$${authenticPrice.toFixed(2)}`;
+    }
   };
 
-  const getStoreFromId = (storeId: string) => {
-    const storeMap: { [key: string]: 'steam' | 'epic' | 'gog' } = {
-      '1': 'steam',
-      '25': 'epic',
-      '7': 'gog',
+  const getStoreName = (storeId: string) => {
+    const storeNames: { [key: string]: string } = {
+      steam: 'Steam',
+      epicgames: 'Epic Games',
+      gog: 'GOG',
+      humblestore: 'Humble Store',
+      fanatical: 'Fanatical'
     };
-    return storeMap[storeId] || 'steam';
+    return storeNames[storeId] || storeId;
   };
 
-  const handleStoreClick = (dealId: string, storeId: string) => {
+  const getStoreIcon = (storeId: string) => {
+    const iconMap: { [key: string]: any } = {
+      steam: 'steam',
+      epicgames: 'epic',
+      gog: 'gog',
+      humblestore: 'humble',
+      fanatical: 'fanatical'
+    };
+    return iconMap[storeId] || 'steam';
+  };
+
+  const handleStoreClick = (storeId: string) => {
     const storeUrls: { [key: string]: string } = {
-      '1': `https://store.steampowered.com/app/${gameData?.info.steamAppID || ''}`,
-      '25': 'https://store.epicgames.com',
-      '7': 'https://www.gog.com',
+      steam: `https://store.steampowered.com/search/?term=${encodeURIComponent(gameData?.title || '')}`,
+      epicgames: `https://store.epicgames.com/browse?q=${encodeURIComponent(gameData?.title || '')}`,
+      gog: `https://www.gog.com/games?search=${encodeURIComponent(gameData?.title || '')}`,
+      humblestore: `https://www.humblebundle.com/store/search?search=${encodeURIComponent(gameData?.title || '')}`,
+      fanatical: `https://www.fanatical.com/en/search?search=${encodeURIComponent(gameData?.title || '')}`
     };
     
-    const url = storeUrls[storeId] || `https://www.cheapshark.com/redirect?dealID=${dealId}`;
-    window.open(url, '_blank');
+    const url = storeUrls[storeId];
+    if (url) {
+      window.open(url, '_blank');
+    }
   };
 
   if (loading) {
@@ -91,36 +157,17 @@ const GameDetails = () => {
     );
   }
 
-  const steamAppId = gameData.info.steamAppID;
-  const heroImage = steamAppId ? getHighQualityImage(steamAppId, 'capsule') : gameData.info.thumb;
-  const headerImage = steamAppId ? getSteamImage(steamAppId) : gameData.info.thumb;
-
-  // Calculate fade opacity based on scroll
-  const fadeOpacity = Math.min(scrollY / 300, 0.8);
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section with Background Image */}
-      <div className="relative h-[70vh] overflow-hidden">
+      {/* Hero Section with HD Background */}
+      <div className="relative h-[60vh] overflow-hidden">
         <img
-          src={heroImage}
-          alt={gameData.info.title}
+          src={gameData.background}
+          alt={gameData.title}
           className="w-full h-full object-cover"
-          onError={(e) => {
-            e.currentTarget.src = gameData.info.thumb;
-          }}
         />
         
-        {/* Gradient overlay that intensifies on scroll */}
-        <div 
-          className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"
-          style={{ 
-            background: `linear-gradient(to top, 
-              hsl(var(--background)) ${20 + fadeOpacity * 30}%, 
-              hsl(var(--background) / ${0.6 + fadeOpacity * 0.4}) 70%, 
-              transparent 100%)`
-          }}
-        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         
         {/* Back Button */}
         <Button
@@ -132,133 +179,276 @@ const GameDetails = () => {
           Back
         </Button>
 
-        {/* Game Title and Info */}
+        {/* Game Title and Basic Info */}
         <div className="absolute bottom-0 left-0 right-0 p-8">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">
-              {gameData.info.title}
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg">
+              {gameData.title}
             </h1>
             
-            <div className="flex flex-wrap items-center gap-4 text-white/90">
+            <div className="flex flex-wrap items-center gap-4 text-white/90 mb-4">
               <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5" />
-                <span className="text-sm">Available on multiple platforms</span>
+                <Star className="w-5 h-5 fill-current text-yellow-400" />
+                <span className="text-lg font-semibold">{gameData.review.score}</span>
+                <span className="text-sm">({gameData.review.count.toLocaleString()} reviews)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                <span>{new Date(gameData.release_date).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                <span className="text-sm">{gameData.deals.length} store{gameData.deals.length !== 1 ? 's' : ''}</span>
+                <span>{gameData.developer}</span>
               </div>
+            </div>
+
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2">
+              {gameData.tags.slice(0, 8).map((tag: string) => (
+                <Badge key={tag} variant="secondary" className="bg-white/20 text-white border-white/30">
+                  {tag}
+                </Badge>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Content Section */}
-      <div className="max-w-4xl mx-auto p-8 -mt-16 relative z-10">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Game Image Card */}
-          <div className="lg:col-span-1">
-            <Card className="overflow-hidden">
-              <img
-                src={headerImage}
-                alt={gameData.info.title}
-                className="w-full aspect-[3/4] object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = gameData.info.thumb;
-                }}
-              />
-            </Card>
-          </div>
+          {/* Left Column - Media Gallery */}
+          <div className="lg:col-span-2">
+            <Tabs defaultValue="media" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="media" className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  Media
+                </TabsTrigger>
+                <TabsTrigger value="about" className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4" />
+                  About
+                </TabsTrigger>
+                <TabsTrigger value="dlc" className="flex items-center gap-2">
+                  <Tag className="w-4 h-4" />
+                  DLC
+                </TabsTrigger>
+              </TabsList>
 
-          {/* Game Information */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Pricing */}
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-bold text-foreground mb-4">Available Deals</h2>
-                <div className="space-y-3">
-                  {gameData.deals.map((deal, index) => {
-                    const savings = parseFloat(deal.savings);
-                    const storeName = STORE_NAMES[deal.storeID as keyof typeof STORE_NAMES] || 'Unknown Store';
-                    
-                    return (
-                      <div key={index} className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <StoreIcon store={getStoreFromId(deal.storeID)} className="w-6 h-6" />
-                          <span className="font-medium text-foreground">{storeName}</span>
-                          {savings > 0 && (
-                            <Badge className="bg-gradient-discount text-white border-0">
-                              -{savings.toFixed(0)}%
+              <TabsContent value="media" className="space-y-6">
+                {/* Main Media Display */}
+                <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                  {selectedMedia.includes('.mp4') ? (
+                    <video
+                      src={selectedMedia}
+                      controls
+                      className="w-full h-full object-cover"
+                      poster={gameData.screenshots[0]}
+                    />
+                  ) : (
+                    <img
+                      src={selectedMedia}
+                      alt="Game media"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+
+                {/* Media Thumbnails */}
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {gameData.videos.map((video: string, index: number) => (
+                    <div
+                      key={`video-${index}`}
+                      className={`relative flex-shrink-0 w-32 h-18 bg-black rounded cursor-pointer border-2 ${
+                        selectedMedia === video ? 'border-primary' : 'border-transparent'
+                      }`}
+                      onClick={() => setSelectedMedia(video)}
+                    >
+                      <img
+                        src={gameData.screenshots[0]}
+                        alt="Video thumbnail"
+                        className="w-full h-full object-cover rounded"
+                      />
+                      <Play className="absolute inset-0 m-auto w-6 h-6 text-white" />
+                    </div>
+                  ))}
+                  {gameData.screenshots.map((screenshot: string, index: number) => (
+                    <img
+                      key={`screenshot-${index}`}
+                      src={screenshot}
+                      alt={`Screenshot ${index + 1}`}
+                      className={`flex-shrink-0 w-32 h-18 object-cover rounded cursor-pointer border-2 ${
+                        selectedMedia === screenshot ? 'border-primary' : 'border-transparent'
+                      }`}
+                      onClick={() => setSelectedMedia(screenshot)}
+                    />
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="about" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Game Description</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {gameData.description}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Game Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-semibold text-foreground">Developer</h4>
+                        <p className="text-muted-foreground">{gameData.developer}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">Publisher</h4>
+                        <p className="text-muted-foreground">{gameData.publisher}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">Release Date</h4>
+                        <p className="text-muted-foreground">
+                          {new Date(gameData.release_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground">Platforms</h4>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {gameData.platforms.map((platform: string) => (
+                            <Badge key={platform} variant="outline" className="text-xs">
+                              <Monitor className="w-3 h-3 mr-1" />
+                              {platform}
                             </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                          {savings > 0 && (
-                            <span className="text-sm text-muted-foreground line-through">
-                              {formatPrice(deal.retailPrice)}
-                            </span>
-                          )}
-                          <span className={`font-bold text-lg ${parseFloat(deal.price) === 0 ? 'text-success' : 'text-price-highlight'}`}>
-                            {formatPrice(deal.price)}
-                          </span>
-                          <Button
-                            size="sm"
-                            onClick={() => handleStoreClick(deal.dealID, deal.storeID)}
-                            className="bg-primary hover:bg-primary/90"
-                          >
-                            <ExternalLink className="w-3 h-3 mr-2" />
-                            Buy
-                          </Button>
+                          ))}
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-2">Tags</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {gameData.tags.map((tag: string) => (
+                          <Badge key={tag} variant="secondary">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="dlc" className="space-y-6">
+                <div className="grid gap-4">
+                  {gameData.dlc.map((dlc: any) => (
+                    <Card key={dlc.id}>
+                      <CardContent className="p-4">
+                        <div className="flex gap-4">
+                          <img
+                            src={dlc.image}
+                            alt={dlc.title}
+                            className="w-24 h-16 object-cover rounded"
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-foreground">{dlc.title}</h4>
+                            <p className="text-sm text-muted-foreground mb-2">{dlc.description}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-lg text-primary">
+                                {formatPrice(dlc.price, 'steam')}
+                              </span>
+                              <Button size="sm">
+                                <ExternalLink className="w-3 h-3 mr-2" />
+                                View DLC
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Right Column - Pricing and Store Info */}
+          <div className="space-y-6">
+            {/* Available Deals */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Available Deals</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {gameData.stores.map((storeId: string) => {
+                  const price = getAuthenticPrice(gameData.title, storeId, selectedRegion);
+                  const originalPrice = price * 1.2;
+                  const discount = Math.round(((originalPrice - price) / originalPrice) * 100);
+                  
+                  return (
+                    <div key={storeId} className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <StoreIcon store={getStoreIcon(storeId)} className="w-6 h-6" />
+                        <span className="font-medium text-foreground">{getStoreName(storeId)}</span>
+                        {discount > 0 && (
+                          <Badge className="bg-gradient-discount text-white border-0">
+                            -{discount}%
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        {discount > 0 && (
+                          <span className="text-sm text-muted-foreground line-through">
+                            {formatPrice(originalPrice, storeId)}
+                          </span>
+                        )}
+                        <span className="font-bold text-lg text-price-highlight">
+                          {formatPrice(price, storeId)}
+                        </span>
+                        <Button
+                          size="sm"
+                          onClick={() => handleStoreClick(storeId)}
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          <ExternalLink className="w-3 h-3 mr-2" />
+                          Buy
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
 
-            {/* Historical Low */}
-            {gameData.cheapestPriceEver && (
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-3">Price History</h3>
-                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+            {/* Price History */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Price History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-muted-foreground" />
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
                       <span className="text-foreground">Historical Low</span>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-lg text-success">
-                        {formatPrice(gameData.cheapestPriceEver.price)}
+                        {formatPrice(Math.min(...gameData.price_history.map((h: any) => h.price)), 'steam')}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(gameData.cheapestPriceEver.date * 1000).toLocaleDateString()}
+                        {new Date(gameData.price_history[0]?.date).toLocaleDateString()}
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Game Stats */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">Game Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Platforms</p>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {gameData.deals.map((deal, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {STORE_NAMES[deal.storeID as keyof typeof STORE_NAMES] || 'Unknown'}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Steam App ID</p>
-                    <p className="font-medium text-foreground">{steamAppId || 'N/A'}</p>
                   </div>
                 </div>
               </CardContent>

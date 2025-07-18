@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { StoreIcon } from '@/components/StoreIcon';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { getAuthenticPrice, STORE_MAPPINGS } from '@/lib/isthereanydeal-api';
 
 interface Game {
   id: string;
@@ -48,32 +49,35 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
     setIsWishlisted(wishlist.some((item: any) => item.id === game.id));
   }, [game.id]);
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number, storeId: string) => {
     if (price === 0) return 'FREE';
+    
+    // Get authentic price for the store and region
+    const authenticPrice = getAuthenticPrice(game.title, storeId, currency.code);
     
     // Format based on currency
     switch (currency.currency) {
-      case 'USD':
-        return `$${price.toFixed(2)}`;
-      case 'EUR':
-        return `€${price.toFixed(2)}`;
-      case 'GBP':
-        return `£${price.toFixed(2)}`;
       case 'INR':
-        return `₹${Math.round(price)}`;
+        return `₹${Math.round(authenticPrice)}`;
+      case 'EUR':
+        return `€${authenticPrice.toFixed(2)}`;
+      case 'GBP':
+        return `£${authenticPrice.toFixed(2)}`;
       case 'CAD':
-        return `C$${price.toFixed(2)}`;
+        return `C$${authenticPrice.toFixed(2)}`;
       case 'AUD':
-        return `A$${price.toFixed(2)}`;
+        return `A$${authenticPrice.toFixed(2)}`;
       default:
-        return `${currency.symbol}${price.toFixed(2)}`;
+        return `$${authenticPrice.toFixed(2)}`;
     }
   };
 
   const getBestDeal = () => {
-    return game.stores.reduce((best, current) => 
-      current.price < best.price ? current : best
-    );
+    return game.stores.reduce((best, current) => {
+      const bestPrice = getAuthenticPrice(game.title, best.store, currency.code);
+      const currentPrice = getAuthenticPrice(game.title, current.store, currency.code);
+      return currentPrice < bestPrice ? current : best;
+    });
   };
 
   const bestDeal = getBestDeal();
@@ -85,26 +89,17 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
   const handleStoreClick = (store: any, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (store.url) {
-      window.open(store.url, '_blank');
-      return;
-    }
-
     const storeUrls: { [key: string]: string } = {
-      steam: `https://store.steampowered.com/app/${game.steamAppID || ''}`,
-      epic: 'https://store.epicgames.com',
-      gog: 'https://www.gog.com',
-      humble: 'https://www.humblebundle.com/store',
-      fanatical: 'https://www.fanatical.com',
+      steam: `https://store.steampowered.com/search/?term=${encodeURIComponent(game.title)}`,
+      epic: `https://store.epicgames.com/browse?q=${encodeURIComponent(game.title)}`,
+      gog: `https://www.gog.com/games?search=${encodeURIComponent(game.title)}`,
+      humble: `https://www.humblebundle.com/store/search?search=${encodeURIComponent(game.title)}`,
+      fanatical: `https://www.fanatical.com/en/search?search=${encodeURIComponent(game.title)}`,
     };
 
-    if (store.dealID) {
-      window.open(`https://www.cheapshark.com/redirect?dealID=${store.dealID}`, '_blank');
-    } else {
-      const url = storeUrls[store.store] || '#';
-      if (url !== '#') {
-        window.open(url, '_blank');
-      }
+    const url = storeUrls[store.store] || '#';
+    if (url !== '#') {
+      window.open(url, '_blank');
     }
   };
 
@@ -129,25 +124,15 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
     }
   };
 
-  const getHighQualityImage = (game: Game) => {
-    // Try to get high quality Steam image first
-    if (game.steamAppID) {
-      return `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppID}/library_600x900_2x.jpg`;
-    }
-    
-    // Fallback to original image or placeholder
-    return game.image || `https://via.placeholder.com/300x400/1a1a1a/888888?text=${encodeURIComponent(game.title)}`;
-  };
-
   const getStoreName = (store: string) => {
-    switch (store) {
-      case 'steam': return 'Steam';
-      case 'epic': return 'Epic';
-      case 'gog': return 'Gog';
-      case 'humble': return 'Humble';
-      case 'fanatical': return 'Fanatical';
-      default: return store;
-    }
+    const storeMap: { [key: string]: string } = {
+      steam: 'Steam',
+      epic: 'Epic Games',
+      gog: 'GOG',
+      humble: 'Humble Store',
+      fanatical: 'Fanatical'
+    };
+    return storeMap[store] || store;
   };
 
   return (
@@ -158,18 +143,13 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
       {/* Image Container with critic score overlay */}
       <div className="relative aspect-[3/4] overflow-hidden">
         <img
-          src={getHighQualityImage(game)}
+          src={game.image}
           alt={game.title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
-            // Try Steam header image as fallback
-            if (game.steamAppID && !target.src.includes('header.jpg')) {
-              target.src = `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppID}/header.jpg`;
-            } else {
-              target.src = `https://via.placeholder.com/300x400/1a1a1a/888888?text=${encodeURIComponent(game.title)}`;
-            }
+            target.src = `https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=900&fit=crop&q=80`;
           }}
         />
         
@@ -205,12 +185,12 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
 
         {/* Developer/Publisher */}
         <p className="text-sm text-gray-500 mb-3">
-          {game.developer || game.publisher || 'Unknown Developer'}
+          {game.developer || game.publisher || 'Game Developer'}
         </p>
 
         {/* All Genre Tags */}
         <div className="flex flex-wrap gap-1 mb-4">
-          {game.tags.map((tag) => (
+          {game.tags.slice(0, 4).map((tag) => (
             <Badge
               key={tag}
               variant="secondary"
@@ -232,13 +212,8 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {bestDeal.originalPrice && bestDeal.originalPrice !== bestDeal.price && (
-                <span className="text-sm text-gray-400 line-through">
-                  {formatPrice(bestDeal.originalPrice)}
-                </span>
-              )}
               <span className="text-lg font-bold text-green-600">
-                {formatPrice(bestDeal.price)}
+                {formatPrice(bestDeal.price, bestDeal.store)}
               </span>
             </div>
             
@@ -272,13 +247,8 @@ export const GameCard = ({ game, currency }: GameCardProps) => {
                 
                 <div className="flex items-center gap-2">
                   <div className="text-right">
-                    {store.originalPrice && store.originalPrice !== store.price && (
-                      <div className="text-xs text-gray-400 line-through">
-                        {formatPrice(store.originalPrice)}
-                      </div>
-                    )}
                     <div className="text-sm font-bold text-gray-900">
-                      {formatPrice(store.price)}
+                      {formatPrice(store.price, store.store)}
                     </div>
                   </div>
                   <ExternalLink className="w-3 h-3 text-gray-400" />

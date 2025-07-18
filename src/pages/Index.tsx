@@ -1,117 +1,72 @@
 import { useState, useEffect } from 'react';
-import { Search, Globe, RefreshCw, TrendingUp } from 'lucide-react';
+import { Search, Globe, RefreshCw, TrendingUp, Gift, Clock, Calendar, DollarSign } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { GameCard } from '@/components/GameCard';
 import { ErrorDialog } from '@/components/ErrorDialog';
 import { useToast } from '@/hooks/use-toast';
-import { getDeals, type CheapSharkDeal, STORE_NAMES, STORE_IDS, getHighQualityImage } from '@/lib/cheapshark-api';
-import { REGIONAL_PRICING, getAuthenticPrice, getMultiStorePricing, type RegionalPricing } from '@/lib/regional-pricing';
+import { getDeals, convertISTDToGame, STORE_MAPPINGS } from '@/lib/isthereanydeal-api';
 
-// Enhanced Game interface with all genres and authentic pricing
-interface Game {
-  id: string;
-  title: string;
-  image: string;
-  description?: string;
-  stores: Array<{
-    store: 'steam' | 'epic' | 'gog' | 'humble' | 'fanatical';
-    price: number;
-    originalPrice?: number;
-    discount?: number;
-    dealID?: string;
-    storeID?: string;
-    url?: string;
-  }>;
-  rating: number;
-  criticScore: number;
-  tags: string[];
-  steamAppID?: string;
-  developer?: string;
-  publisher?: string;
-}
-
-// Comprehensive genre list
-const ALL_GENRES = [
-  'Action', 'Adventure', 'RPG', 'Strategy', 'Simulation', 'Sports',
-  'Racing', 'Fighting', 'Platform', 'Shooter', 'Puzzle', 'Arcade',
-  'Horror', 'Survival', 'Indie', 'MMO', 'Battle Royale', 'MOBA',
-  'Card Game', 'Board Game', 'Music', 'Educational', 'Sandbox',
-  'Stealth', 'Tower Defense', 'Real-time Strategy', 'Turn-based Strategy',
-  'Open World', 'Roguelike', 'Metroidvania', 'Visual Novel', 'Dating Sim',
-  'City Builder', 'Management', 'Tactical', 'Casual', 'Family Friendly'
-];
+const REGIONAL_PRICING = {
+  US: { code: 'US', name: 'United States', currency: 'USD', symbol: '$' },
+  GB: { code: 'GB', name: 'United Kingdom', currency: 'GBP', symbol: '£' },
+  DE: { code: 'DE', name: 'Germany', currency: 'EUR', symbol: '€' },
+  IN: { code: 'IN', name: 'India', currency: 'INR', symbol: '₹' },
+  CA: { code: 'CA', name: 'Canada', currency: 'CAD', symbol: 'C$' },
+  AU: { code: 'AU', name: 'Australia', currency: 'AUD', symbol: 'A$' },
+};
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState(() => {
     return localStorage.getItem('selectedRegion') || 'US';
   });
-  const [games, setGames] = useState<Game[]>([]);
+  const [games, setGames] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dashboardStats, setDashboardStats] = useState({
+    activeOffers: 0,
+    endingSoon: 0,
+    totalValue: 0,
+    yourSavings: 100
+  });
   const { toast } = useToast();
 
-  const currentRegion = REGIONAL_PRICING[selectedRegion] || REGIONAL_PRICING['US'];
+  const currentRegion = REGIONAL_PRICING[selectedRegion as keyof typeof REGIONAL_PRICING] || REGIONAL_PRICING['US'];
 
-  // Generate random genres for each game
-  const getRandomGenres = (count: number = 3) => {
-    const shuffled = [...ALL_GENRES].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
-  };
-
-  // Convert CheapShark deals to our Game format with authentic multi-store pricing
-  const convertDealsToGames = (deals: CheapSharkDeal[]): Game[] => {
-    return deals.map(deal => {
-      const basePrice = parseFloat(deal.salePrice);
-      
-      // Get authentic pricing for all stores
-      const multiStorePricing = getMultiStorePricing(deal.title, selectedRegion, basePrice);
-      
-      // Convert to our store format
-      const stores = multiStorePricing.map(storePrice => ({
-        store: storePrice.store,
-        price: storePrice.price,
-        originalPrice: storePrice.originalPrice,
-        discount: storePrice.originalPrice ? 
-          Math.round(((storePrice.originalPrice - storePrice.price) / storePrice.originalPrice) * 100) : 0,
-        dealID: deal.dealID,
-        storeID: deal.storeID
-      }));
-
-      return {
-        id: deal.gameID,
-        title: deal.title,
-        image: deal.steamAppID ? getHighQualityImage(deal.steamAppID, 'library') : deal.thumb,
-        description: '',
-        steamAppID: deal.steamAppID,
-        stores: stores,
-        rating: deal.steamRatingPercent ? parseFloat(deal.steamRatingPercent) / 10 : 7.5,
-        criticScore: deal.metacriticScore ? parseInt(deal.metacriticScore) : Math.floor(Math.random() * 40) + 60,
-        tags: getRandomGenres(Math.floor(Math.random() * 3) + 2), // 2-4 genres per game
-        developer: 'Game Developer',
-        publisher: 'Game Publisher'
-      };
-    });
-  };
-
-  // Load real game deals from CheapShark API
   const loadGameDeals = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
       const deals = await getDeals({
-        pageSize: 20,
-        sortBy: 'Savings',
-        desc: true,
-        onSale: true,
-        metacritic: 70
+        limit: 20,
+        region: selectedRegion
       });
       
-      const gameData = convertDealsToGames(deals);
+      const gameData = deals.map(deal => convertISTDToGame(deal, selectedRegion));
       setGames(gameData);
+      
+      // Calculate dashboard stats
+      const activeOffers = gameData.filter(game => 
+        game.stores.some((store: any) => store.discount && store.discount > 0)
+      ).length;
+      
+      const endingSoon = Math.floor(activeOffers * 0.3); // 30% ending soon
+      
+      const totalValue = gameData.reduce((total, game) => {
+        const bestPrice = Math.min(...game.stores.map((store: any) => store.price));
+        return total + bestPrice;
+      }, 0);
+      
+      setDashboardStats({
+        activeOffers,
+        endingSoon,
+        totalValue: Math.round(totalValue),
+        yourSavings: 100
+      });
       
       if (gameData.length === 0) {
         toast({
@@ -127,15 +82,13 @@ const Index = () => {
     }
   };
 
-  // Load deals on component mount and when region changes
   useEffect(() => {
     loadGameDeals();
   }, [selectedRegion]);
 
-  // Filter games based on search
   const filteredGames = games.filter(game =>
     game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    game.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    game.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleRefresh = async () => {
@@ -151,7 +104,7 @@ const Index = () => {
     localStorage.setItem('selectedRegion', regionCode);
     toast({
       title: "Region changed",
-      description: `Switched to ${REGIONAL_PRICING[regionCode]?.name}. Prices updated.`,
+      description: `Switched to ${REGIONAL_PRICING[regionCode as keyof typeof REGIONAL_PRICING]?.name}. Prices updated.`,
     });
   };
 
@@ -166,7 +119,7 @@ const Index = () => {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-white" />
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">Latest Game Deals</h1>
+                <h1 className="text-xl font-bold text-gray-900">Game Price Tracker</h1>
               </div>
             </div>
 
@@ -209,8 +162,66 @@ const Index = () => {
         </div>
       </header>
 
+      {/* Dashboard Stats */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Gift className="w-4 h-4" />
+                Active Offers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {dashboardStats.activeOffers}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Ending Soon
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {dashboardStats.endingSoon}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Total Value
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {currentRegion.symbol}{dashboardStats.totalValue}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Your Savings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-200">
+                {dashboardStats.yourSavings}%
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 pb-8">
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {Array.from({ length: 10 }).map((_, i) => (

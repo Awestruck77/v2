@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Clock, Gift, Calendar, Timer } from 'lucide-react';
+import { Clock, Gift, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { GameCard } from '@/components/GameCard';
-import { getFreeGames, type CheapSharkDeal } from '@/lib/cheapshark-api';
+import { getDeals, convertISTDToGame } from '@/lib/isthereanydeal-api';
 import { useToast } from '@/hooks/use-toast';
 
 interface LimitedGame {
@@ -31,13 +30,6 @@ const Limited = () => {
   const [limitedGames, setLimitedGames] = useState<LimitedGame[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-
-  const getStoreType = (storeID: string): 'steam' | 'epic' | 'gog' => {
-    if (storeID === '1') return 'steam';
-    if (storeID === '25') return 'epic';
-    if (storeID === '7') return 'gog';
-    return 'steam';
-  };
 
   const generateRandomEndDate = () => {
     const now = new Date();
@@ -66,37 +58,21 @@ const Limited = () => {
     }
   };
 
-  const convertDealsToLimitedGames = (deals: CheapSharkDeal[]): LimitedGame[] => {
-    return deals.slice(0, 8).map(deal => {
-      const endDate = generateRandomEndDate();
-      return {
-        id: deal.gameID,
-        title: deal.title,
-        image: deal.thumb,
-        steamAppID: deal.steamAppID,
-        stores: [{
-          store: getStoreType(deal.storeID),
-          price: parseFloat(deal.salePrice),
-          originalPrice: parseFloat(deal.normalPrice),
-          discount: Math.round(parseFloat(deal.savings)),
-          dealID: deal.dealID,
-          storeID: deal.storeID
-        }],
-        rating: deal.steamRatingPercent ? parseFloat(deal.steamRatingPercent) / 10 : 7.5,
-        criticScore: deal.metacriticScore ? parseInt(deal.metacriticScore) : 75,
-        tags: ['Action', 'Adventure'],
-        endDate,
-        timeRemaining: calculateTimeRemaining(endDate)
-      };
-    });
-  };
-
   const loadLimitedGames = async () => {
     setIsLoading(true);
     
     try {
-      const freeGames = await getFreeGames();
-      const limitedGameData = convertDealsToLimitedGames(freeGames);
+      const deals = await getDeals({ limit: 8 });
+      const limitedGameData = deals.slice(0, 8).map(deal => {
+        const gameData = convertISTDToGame(deal);
+        const endDate = generateRandomEndDate();
+        return {
+          ...gameData,
+          endDate,
+          timeRemaining: calculateTimeRemaining(endDate)
+        };
+      });
+      
       setLimitedGames(limitedGameData);
 
       toast({
@@ -161,7 +137,7 @@ const Limited = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Limited Time Offers</h1>
-            <p className="text-muted-foreground">Games free for a limited time - claim them now!</p>
+            <p className="text-muted-foreground">Games with special limited-time pricing - grab them now!</p>
           </div>
         </div>
 
@@ -169,67 +145,6 @@ const Limited = () => {
           <Clock className="w-4 h-4 mr-2" />
           Refresh
         </Button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Gift className="w-4 h-4" />
-              Active Offers
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-success">
-              {limitedGames.filter(game => game.timeRemaining !== 'Expired').length}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Timer className="w-4 h-4" />
-              Ending Soon
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-warning">
-              {limitedGames.filter(game => 
-                game.timeRemaining && (
-                  game.timeRemaining.includes('hour') || 
-                  game.timeRemaining.includes('1 day')
-                )
-              ).length}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Total Value
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              ${limitedGames.reduce((total, game) => 
-                total + (game.stores[0]?.originalPrice || 0), 0
-              ).toFixed(0)}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Your Savings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-success">100%</div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Limited Games Grid */}
@@ -258,22 +173,11 @@ const Limited = () => {
                 </Badge>
               </div>
 
-              {/* Free Badge */}
+              {/* Limited Deal Badge */}
               <div className="absolute top-2 right-2">
-                <Badge className="bg-success text-success-foreground">
-                  FREE
+                <Badge className="bg-warning text-warning-foreground">
+                  LIMITED
                 </Badge>
-              </div>
-
-              {/* Claim Button */}
-              <div className="absolute bottom-2 left-2 right-2">
-                <Button 
-                  className="w-full bg-success hover:bg-success/90 text-success-foreground"
-                  size="sm"
-                  disabled={game.timeRemaining === 'Expired'}
-                >
-                  {game.timeRemaining === 'Expired' ? 'Expired' : 'Claim Now'}
-                </Button>
               </div>
             </div>
           ))}
@@ -283,7 +187,7 @@ const Limited = () => {
           <Timer className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">No limited offers available</h3>
           <p className="text-muted-foreground mb-4">
-            Check back later for new limited-time free games and promotions.
+            Check back later for new limited-time deals and promotions.
           </p>
           <Button onClick={loadLimitedGames}>
             <Clock className="w-4 h-4 mr-2" />
@@ -291,26 +195,6 @@ const Limited = () => {
           </Button>
         </div>
       )}
-
-      {/* Information Panel */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="w-5 h-5" />
-            About Limited Time Offers
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-muted-foreground">
-            Limited time offers are games that are temporarily free to claim and keep forever. 
-            These promotions are usually offered by game stores to celebrate events, holidays, or game launches.
-          </p>
-          <p className="text-muted-foreground">
-            <strong>Important:</strong> Once claimed during the promotional period, these games remain in your library permanently, 
-            even after the promotion ends. Make sure to claim them before the deadline!
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 };
