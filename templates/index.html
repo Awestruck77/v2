@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Game Price Tracker - Best Game Deals{% endblock %}
+
+{% block content %}
+<div class="bg-slate-900 min-h-screen">
+    <!-- Header Section -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-600 py-12">
+        <div class="container mx-auto px-4">
+            <div class="text-center text-white">
+                <h1 class="text-4xl md:text-6xl font-bold mb-4">
+                    Find the Best Game Deals
+                </h1>
+                <p class="text-xl md:text-2xl mb-8 text-blue-100">
+                    Track prices across multiple stores and never miss a discount
+                </p>
+                
+                <!-- Search Bar -->
+                <div class="max-w-2xl mx-auto">
+                    <form action="{{ url_for('search') }}" method="GET" class="flex gap-2">
+                        <div class="flex-1 relative">
+                            <input type="text" 
+                                   name="q" 
+                                   placeholder="Search for games..." 
+                                   class="w-full px-4 py-3 pl-12 rounded-lg text-gray-900 text-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+                            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <button type="submit" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+                            Search
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Region Selector -->
+                <div class="mt-6">
+                    <select onchange="setRegion(this.value)" class="bg-white/20 text-white border border-white/30 rounded-lg px-4 py-2">
+                        <option value="US" {% if region == 'US' %}selected{% endif %}>🇺🇸 United States (USD)</option>
+                        <option value="GB" {% if region == 'GB' %}selected{% endif %}>🇬🇧 United Kingdom (GBP)</option>
+                        <option value="DE" {% if region == 'DE' %}selected{% endif %}>🇩🇪 Germany (EUR)</option>
+                        <option value="IN" {% if region == 'IN' %}selected{% endif %}>🇮🇳 India (INR)</option>
+                        <option value="CA" {% if region == 'CA' %}selected{% endif %}>🇨🇦 Canada (CAD)</option>
+                        <option value="AU" {% if region == 'AU' %}selected{% endif %}>🇦🇺 Australia (AUD)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dashboard Stats -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-green-100 text-sm">Active Offers</p>
+                        <p class="text-3xl font-bold">{{ stats.get('active_offers', 0) }}</p>
+                    </div>
+                    <i class="fas fa-gift text-2xl text-green-200"></i>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-orange-100 text-sm">Ending Soon</p>
+                        <p class="text-3xl font-bold">{{ stats.get('ending_soon', 0) }}</p>
+                    </div>
+                    <i class="fas fa-clock text-2xl text-orange-200"></i>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-blue-100 text-sm">Total Value</p>
+                        <p class="text-3xl font-bold">${{ "%.0f"|format(stats.get('total_value', 0)) }}</p>
+                    </div>
+                    <i class="fas fa-calendar text-2xl text-blue-200"></i>
+                </div>
+            </div>
+            
+            <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-purple-100 text-sm">Your Savings</p>
+                        <p class="text-3xl font-bold">{{ stats.get('your_savings', 0) }}%</p>
+                    </div>
+                    <i class="fas fa-percentage text-2xl text-purple-200"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hot Deals Section -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-3xl font-bold text-white">🔥 Hot Deals</h2>
+                <a href="{{ url_for('deals') }}" class="text-blue-400 hover:text-blue-300 font-semibold">
+                    View All Deals <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            
+            {% if deals %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                    {% for deal in deals %}
+                        <div class="game-card rounded-lg overflow-hidden transition-all duration-300 hover:scale-105">
+                            <!-- Game Image -->
+                            <div class="relative aspect-[3/4] overflow-hidden">
+                                <img src="{{ deal.game.cover_image_url or 'https://via.placeholder.com/300x400/1a1a1a/888888?text=' + deal.title|urlencode }}" 
+                                     alt="{{ deal.title }}" 
+                                     class="w-full h-full object-cover">
+                                
+                                <!-- Discount Badge -->
+                                {% if deal.savings_percentage > 0 %}
+                                    <div class="absolute top-3 right-3">
+                                        <span class="discount-badge px-2 py-1 rounded text-sm font-bold">
+                                            -{{ "%.0f"|format(deal.savings_percentage) }}%
+                                        </span>
+                                    </div>
+                                {% endif %}
+                                
+                                <!-- Wishlist Button -->
+                                {% if current_user.is_authenticated %}
+                                    <button class="absolute top-3 left-3 w-8 h-8 bg-black/70 hover:bg-black/90 rounded-full flex items-center justify-center transition-colors"
+                                            data-game-id="{{ deal.game.id }}"
+                                            onclick="addToWishlist({{ deal.game.id }})">
+                                        <i class="far fa-heart text-gray-400"></i>
+                                    </button>
+                                {% endif %}
+                                
+                                <!-- Rating -->
+                                {% if deal.game.metacritic_score %}
+                                    <div class="absolute bottom-3 left-3">
+                                        <div class="bg-black/70 px-2 py-1 rounded flex items-center gap-1">
+                                            <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                            <span class="text-white text-sm font-bold">{{ deal.game.metacritic_score }}</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Game Info -->
+                            <div class="p-4">
+                                <h3 class="font-bold text-white text-sm leading-tight mb-2 line-clamp-2 min-h-[2.5rem]">
+                                    {{ deal.title }}
+                                </h3>
+                                
+                                <!-- Developer -->
+                                <p class="text-slate-400 text-sm mb-3">
+                                    {{ deal.game.developer or 'Game Developer' }}
+                                </p>
+                                
+                                <!-- Price Section -->
+                                <div class="mb-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-slate-300">{{ deal.store.name }}</span>
+                                        <div class="store-icon bg-slate-600 rounded"></div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            {% if deal.savings_percentage > 0 %}
+                                                <span class="text-slate-400 line-through text-sm">
+                                                    ${{ "%.2f"|format(deal.normal_price) }}
+                                                </span>
+                                            {% endif %}
+                                            <span class="price-highlight text-lg">
+                                                {% if deal.sale_price == 0 %}
+                                                    FREE
+                                                {% else %}
+                                                    ${{ "%.2f"|format(deal.sale_price) }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        
+                                        <a href="{{ deal.deal_url }}" 
+                                           target="_blank"
+                                           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                            <i class="fas fa-external-link-alt mr-1"></i>
+                                            View
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <!-- Game Details Link -->
+                                <a href="{{ url_for('game_details', game_id=deal.game.id) }}" 
+                                   class="block w-full text-center bg-slate-700 hover:bg-slate-600 text-white py-2 rounded transition-colors">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-gamepad text-6xl text-slate-600 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-white mb-2">No deals available</h3>
+                    <p class="text-slate-400">Check back later for new deals!</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Quick Links -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <a href="{{ url_for('free_games') }}" class="bg-gradient-to-r from-green-600 to-green-700 rounded-lg p-6 text-white hover:from-green-700 hover:to-green-800 transition-all">
+                <div class="flex items-center gap-4">
+                    <i class="fas fa-gift text-3xl"></i>
+                    <div>
+                        <h3 class="text-xl font-bold">Free Games</h3>
+                        <p class="text-green-100">Discover games that are currently free</p>
+                    </div>
+                </div>
+            </a>
+            
+            <a href="{{ url_for('search') }}" class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all">
+                <div class="flex items-center gap-4">
+                    <i class="fas fa-search text-3xl"></i>
+                    <div>
+                        <h3 class="text-xl font-bold">Advanced Search</h3>
+                        <p class="text-blue-100">Find games with detailed filters</p>
+                    </div>
+                </div>
+            </a>
+            
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('wishlist') }}" class="bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg p-6 text-white hover:from-purple-700 hover:to-purple-800 transition-all">
+                    <div class="flex items-center gap-4">
+                        <i class="fas fa-heart text-3xl"></i>
+                        <div>
+                            <h3 class="text-xl font-bold">Your Wishlist</h3>
+                            <p class="text-purple-100">Track your favorite games</p>
+                        </div>
+                    </div>
+                </a>
+            {% else %}
+                <a href="{{ url_for('register') }}" class="bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg p-6 text-white hover:from-purple-700 hover:to-purple-800 transition-all">
+                    <div class="flex items-center gap-4">
+                        <i class="fas fa-user-plus text-3xl"></i>
+                        <div>
+                            <h3 class="text-xl font-bold">Join Now</h3>
+                            <p class="text-purple-100">Create account for wishlist & alerts</p>
+                        </div>
+                    </div>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-refresh deals every 5 minutes
+    setInterval(() => {
+        fetch('/api/deals')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Deals refreshed:', data.length);
+            })
+            .catch(error => console.error('Error refreshing deals:', error));
+    }, 300000);
+</script>
+{% endblock %}

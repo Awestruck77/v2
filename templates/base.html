@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="game">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Game Price Tracker{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#3b82f6',
+                            foreground: '#ffffff'
+                        },
+                        secondary: {
+                            DEFAULT: '#64748b',
+                            foreground: '#ffffff'
+                        },
+                        success: {
+                            DEFAULT: '#10b981',
+                            foreground: '#ffffff'
+                        },
+                        warning: {
+                            DEFAULT: '#f59e0b',
+                            foreground: '#ffffff'
+                        },
+                        destructive: {
+                            DEFAULT: '#ef4444',
+                            foreground: '#ffffff'
+                        },
+                        muted: {
+                            DEFAULT: '#f1f5f9',
+                            foreground: '#64748b'
+                        },
+                        background: '#ffffff',
+                        foreground: '#0f172a',
+                        card: '#ffffff',
+                        border: '#e2e8f0'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom CSS -->
+    <style>
+        [data-theme="game"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+        
+        [data-theme="game"] body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .game-card {
+            background: linear-gradient(145deg, #1e293b, #334155);
+            border: 1px solid #475569;
+        }
+        
+        .game-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .store-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .price-highlight {
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        .discount-badge {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+    </style>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-gamepad text-white"></i>
+                    </div>
+                    <a href="{{ url_for('index') }}" class="text-xl font-bold text-white">
+                        Game Price Tracker
+                    </a>
+                </div>
+                
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="{{ url_for('index') }}" class="text-slate-300 hover:text-white transition-colors">
+                        <i class="fas fa-home mr-2"></i>Home
+                    </a>
+                    <a href="{{ url_for('search') }}" class="text-slate-300 hover:text-white transition-colors">
+                        <i class="fas fa-search mr-2"></i>Search
+                    </a>
+                    <a href="{{ url_for('deals') }}" class="text-slate-300 hover:text-white transition-colors">
+                        <i class="fas fa-tags mr-2"></i>Deals
+                    </a>
+                    <a href="{{ url_for('free_games') }}" class="text-slate-300 hover:text-white transition-colors">
+                        <i class="fas fa-gift mr-2"></i>Free Games
+                    </a>
+                    
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('wishlist') }}" class="text-slate-300 hover:text-white transition-colors">
+                            <i class="fas fa-heart mr-2"></i>Wishlist
+                        </a>
+                        <a href="{{ url_for('settings') }}" class="text-slate-300 hover:text-white transition-colors">
+                            <i class="fas fa-cog mr-2"></i>Settings
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="text-slate-300 hover:text-white transition-colors">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="text-slate-300 hover:text-white transition-colors">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Login
+                        </a>
+                        <a href="{{ url_for('register') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            Register
+                        </a>
+                    {% endif %}
+                </div>
+                
+                <!-- Mobile menu button -->
+                <button class="md:hidden text-slate-300 hover:text-white" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="hidden md:hidden pb-4">
+                <div class="flex flex-col space-y-2">
+                    <a href="{{ url_for('index') }}" class="text-slate-300 hover:text-white py-2">Home</a>
+                    <a href="{{ url_for('search') }}" class="text-slate-300 hover:text-white py-2">Search</a>
+                    <a href="{{ url_for('deals') }}" class="text-slate-300 hover:text-white py-2">Deals</a>
+                    <a href="{{ url_for('free_games') }}" class="text-slate-300 hover:text-white py-2">Free Games</a>
+                    
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('wishlist') }}" class="text-slate-300 hover:text-white py-2">Wishlist</a>
+                        <a href="{{ url_for('settings') }}" class="text-slate-300 hover:text-white py-2">Settings</a>
+                        <a href="{{ url_for('logout') }}" class="text-slate-300 hover:text-white py-2">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="text-slate-300 hover:text-white py-2">Login</a>
+                        <a href="{{ url_for('register') }}" class="text-slate-300 hover:text-white py-2">Register</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mx-auto px-4 py-4">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} mb-4 p-4 rounded-lg border
+                        {% if category == 'error' %}bg-red-100 border-red-400 text-red-700
+                        {% elif category == 'success' %}bg-green-100 border-green-400 text-green-700
+                        {% elif category == 'warning' %}bg-yellow-100 border-yellow-400 text-yellow-700
+                        {% else %}bg-blue-100 border-blue-400 text-blue-700{% endif %}">
+                        <div class="flex items-center">
+                            <i class="fas fa-{% if category == 'error' %}exclamation-triangle{% elif category == 'success' %}check-circle{% elif category == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} mr-2"></i>
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-slate-800 border-t border-slate-700 mt-16">
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-white font-bold mb-4">Game Price Tracker</h3>
+                    <p class="text-slate-400 text-sm">
+                        Track game prices across multiple stores and never miss a deal.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Features</h4>
+                    <ul class="text-slate-400 text-sm space-y-2">
+                        <li>Price Tracking</li>
+                        <li>Deal Alerts</li>
+                        <li>Wishlist Management</li>
+                        <li>Multi-Store Comparison</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Stores</h4>
+                    <ul class="text-slate-400 text-sm space-y-2">
+                        <li>Steam</li>
+                        <li>Epic Games</li>
+                        <li>GOG</li>
+                        <li>Humble Store</li>
+                        <li>Fanatical</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Support</h4>
+                    <ul class="text-slate-400 text-sm space-y-2">
+                        <li><a href="#" class="hover:text-white">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-white">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-slate-700 mt-8 pt-8 text-center text-slate-400 text-sm">
+                <p>&copy; 2024 Game Price Tracker. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- JavaScript -->
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+        
+        // Theme switching
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        }
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'game';
+        setTheme(savedTheme);
+        
+        // Region switching
+        function setRegion(region) {
+            fetch('/api/region', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ region: region })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => console.error('Error setting region:', error));
+        }
+        
+        // Wishlist functions
+        function addToWishlist(gameId) {
+            fetch('/api/wishlist/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ game_id: gameId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Added to wishlist!', 'success');
+                    updateWishlistButton(gameId, true);
+                } else {
+                    showNotification(data.error || 'Failed to add to wishlist', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding to wishlist:', error);
+                showNotification('Failed to add to wishlist', 'error');
+            });
+        }
+        
+        function removeFromWishlist(gameId) {
+            fetch('/api/wishlist/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ game_id: gameId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Removed from wishlist!', 'success');
+                    updateWishlistButton(gameId, false);
+                } else {
+                    showNotification(data.error || 'Failed to remove from wishlist', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing from wishlist:', error);
+                showNotification('Failed to remove from wishlist', 'error');
+            });
+        }
+        
+        function updateWishlistButton(gameId, isInWishlist) {
+            const button = document.querySelector(`[data-game-id="${gameId}"]`);
+            if (button) {
+                if (isInWishlist) {
+                    button.innerHTML = '<i class="fas fa-heart text-red-500"></i>';
+                    button.onclick = () => removeFromWishlist(gameId);
+                } else {
+                    button.innerHTML = '<i class="far fa-heart text-gray-400"></i>';
+                    button.onclick = () => addToWishlist(gameId);
+                }
+            }
+        }
+        
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500' :
+                type === 'error' ? 'bg-red-500' :
+                type === 'warning' ? 'bg-yellow-500' :
+                'bg-blue-500'
+            } text-white`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,73 +1,79 @@
-# Game Price Tracker
+# Game Price Tracker - Python Edition
 
-A comprehensive web application that tracks game prices and deals across multiple digital storefronts including Steam, Epic Games Store, and GOG.
+A comprehensive Python web application that tracks game prices and deals across multiple digital storefronts including Steam, Epic Games Store, GOG, Humble Store, and Fanatical.
 
 ## 🚀 Features
 
-- **Multi-Store Price Tracking**: Compare prices across Steam, Epic Games, and GOG
+- **Multi-Store Price Tracking**: Compare prices across Steam, Epic Games, GOG, Humble Store, and Fanatical
 - **Real-time Deal Monitoring**: Automated price updates and deal discovery
 - **User Wishlist**: Save games and get price drop notifications
 - **Advanced Search & Filters**: Find games by title, genre, price range, and discount percentage
-- **Price History**: Track price changes over time with interactive charts
+- **Price History**: Track price changes over time
 - **Regional Pricing**: Support for multiple currencies and regions
-- **Responsive Design**: Mobile-friendly interface with dark/light themes
+- **Responsive Design**: Mobile-friendly interface with dark theme
+- **Background Tasks**: Automated price updates and notifications
 
 ## 🏗️ Architecture
 
-### Backend (Python + FastAPI)
-- **Framework**: FastAPI with async support
+### Backend (Python + Flask)
+- **Framework**: Flask with SQLAlchemy ORM
 - **Database**: PostgreSQL (SQLite for development)
-- **Task Scheduler**: APScheduler for price updates
-- **APIs**: IGDB, Steam Web API, Epic Games Store, GOG
+- **Task Queue**: Celery with Redis
+- **Caching**: Redis for API response caching
+- **APIs**: CheapShark, Steam Web API, Epic Games Store, GOG
 
-### Frontend (React + TypeScript)
-- **Framework**: React 18 with TypeScript
-- **Styling**: TailwindCSS + Shadcn/UI components
-- **Build Tool**: Vite
-- **State Management**: React Query for server state
+### Frontend (Server-Side Rendered)
+- **Templates**: Jinja2 with Tailwind CSS
+- **Styling**: Tailwind CSS with custom game theme
+- **JavaScript**: Vanilla JS for interactivity
+- **Icons**: Font Awesome
 
 ## 📁 Project Structure
 
 ```
 game-price-tracker/
-├── backend/                 # Python FastAPI backend
-│   ├── app/
-│   │   ├── api/            # API routes
-│   │   ├── core/           # Configuration and security
-│   │   ├── models/         # Database models
-│   │   ├── services/       # Business logic and external APIs
-│   │   ├── tasks/          # Background tasks
-│   │   └── main.py         # FastAPI application
-│   ├── alembic/            # Database migrations
-│   ├── tests/              # Backend tests
-│   └── requirements.txt    # Python dependencies
-├── frontend/               # React frontend
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Page components
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── lib/            # Utilities and API clients
-│   │   └── types/          # TypeScript type definitions
-│   ├── public/             # Static assets
-│   └── package.json        # Node.js dependencies
-├── docker-compose.yml      # Development environment
-├── .env.example           # Environment variables template
-└── deploy/                # Deployment configurations
+├── app.py                  # Main Flask application
+├── models.py              # Database models
+├── config.py              # Configuration settings
+├── tasks.py               # Celery background tasks
+├── celeryconfig.py        # Celery configuration
+├── run.py                 # Production WSGI entry point
+├── requirements.txt       # Python dependencies
+├── Dockerfile            # Docker configuration
+├── docker-compose.yml    # Multi-container setup
+├── services/             # Business logic services
+│   ├── __init__.py
+│   ├── game_service.py   # Game-related operations
+│   ├── deal_service.py   # Deal management
+│   ├── price_service.py  # Price tracking and alerts
+│   └── external_apis.py  # External API integrations
+├── templates/            # Jinja2 templates
+│   ├── base.html         # Base template
+│   ├── index.html        # Homepage
+│   ├── search.html       # Advanced search
+│   ├── deals.html        # Deals page
+│   ├── wishlist.html     # User wishlist
+│   └── auth/             # Authentication templates
+│       ├── login.html
+│       └── register.html
+└── migrations/           # Database migrations
+    └── env.py
 ```
 
 ## 🛠️ Setup & Installation
 
 ### Prerequisites
-- Python 3.9+
-- Node.js 18+
+- Python 3.11+
 - PostgreSQL (or use Docker)
-- API Keys for IGDB (Twitch Developer)
+- Redis
+- API Keys for external services (optional)
 
-### Backend Setup
+### Local Development
 
-1. **Clone and navigate to backend**:
+1. **Clone and setup virtual environment**:
 ```bash
-cd backend
+git clone <repository-url>
+cd game-price-tracker
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -76,40 +82,33 @@ pip install -r requirements.txt
 2. **Environment Configuration**:
 ```bash
 cp .env.example .env
-# Edit .env with your API keys and database URL
+# Edit .env with your configuration
 ```
 
 3. **Database Setup**:
 ```bash
-# Run migrations
-alembic upgrade head
+# Initialize database
+flask db init
+flask db migrate -m "Initial migration"
+flask db upgrade
 
 # Seed initial data
-python -m app.scripts.seed_data
+flask init-db
 ```
 
-4. **Start Backend**:
+4. **Start Services**:
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+# Start Redis (if not using Docker)
+redis-server
 
-### Frontend Setup
+# Start Flask application
+python app.py
 
-1. **Navigate to frontend**:
-```bash
-cd frontend
-npm install
-```
+# Start Celery worker (in another terminal)
+celery -A tasks.celery worker --loglevel=info
 
-2. **Environment Configuration**:
-```bash
-cp .env.example .env.local
-# Edit with your backend API URL
-```
-
-3. **Start Frontend**:
-```bash
-npm run dev
+# Start Celery beat (in another terminal)
+celery -A tasks.celery beat --loglevel=info
 ```
 
 ### Docker Development (Recommended)
@@ -121,30 +120,14 @@ docker-compose up -d
 # View logs
 docker-compose logs -f
 
+# Initialize database
+docker-compose exec web flask init-db
+
 # Stop services
 docker-compose down
 ```
 
-## 🔧 API Configuration
-
-### Required API Keys
-
-1. **IGDB API (Game Metadata)**:
-   - Create Twitch Developer account
-   - Get Client ID and Client Secret
-   - Documentation: https://api-docs.igdb.com/
-
-2. **Steam Web API**:
-   - No key required for basic endpoints
-   - Rate limited to prevent abuse
-
-3. **Epic Games Store**:
-   - Uses unofficial API wrapper
-   - No authentication required
-
-4. **GOG.com**:
-   - Uses web scraping approach
-   - Respectful rate limiting implemented
+## 🔧 Configuration
 
 ### Environment Variables
 
@@ -152,123 +135,123 @@ docker-compose down
 # Database
 DATABASE_URL=postgresql://user:password@localhost:5432/gametracker
 
-# API Keys
-IGDB_CLIENT_ID=your_twitch_client_id
-IGDB_CLIENT_SECRET=your_twitch_client_secret
+# Redis
+REDIS_URL=redis://localhost:6379
 
 # Security
 SECRET_KEY=your-secret-key-here
-ALGORITHM=HS256
 
-# External APIs
-STEAM_API_KEY=optional_steam_key
+# External APIs (optional)
+STEAM_API_KEY=your_steam_api_key
+IGDB_CLIENT_ID=your_igdb_client_id
+IGDB_CLIENT_SECRET=your_igdb_client_secret
+
+# Email (optional)
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
 ```
 
 ## 📊 API Endpoints
 
-### Game Search & Discovery
-- `GET /api/v1/games/search` - Search games across all stores
-- `GET /api/v1/games/{game_id}` - Get detailed game information
-- `GET /api/v1/deals` - Get current deals with filters
-
-### Store-Specific Endpoints
-- `GET /api/v1/stores/steam/deals` - Steam-specific deals
-- `GET /api/v1/stores/epic/deals` - Epic Games deals
-- `GET /api/v1/stores/gog/deals` - GOG deals
+### Game & Deal Endpoints
+- `GET /` - Homepage with latest deals
+- `GET /search` - Advanced search page
+- `GET /deals` - Deals page with categories
+- `GET /game/<id>` - Game details page
+- `GET /api/deals` - JSON API for deals
+- `POST /api/region` - Set user region
 
 ### User Features
-- `POST /api/v1/wishlist` - Add game to wishlist
-- `GET /api/v1/wishlist` - Get user's wishlist
-- `POST /api/v1/alerts` - Set price alerts
+- `GET /wishlist` - User wishlist (requires login)
+- `POST /api/wishlist/add` - Add game to wishlist
+- `POST /api/wishlist/remove` - Remove from wishlist
+- `POST /api/settings` - Update user settings
 
-### Price History
-- `GET /api/v1/games/{game_id}/price-history` - Historical price data
+### Authentication
+- `GET /login` - Login page
+- `POST /login` - Process login
+- `GET /register` - Registration page
+- `POST /register` - Process registration
+- `GET /logout` - Logout user
 
 ## 🔄 Background Tasks
 
-The application runs several background tasks:
+The application runs several background tasks using Celery:
 
 1. **Price Updates**: Refresh game prices every 6 hours
-2. **Deal Discovery**: Find new deals and discounts
-3. **Price Alerts**: Check for price drops and send notifications
-4. **Data Cleanup**: Remove outdated price history
+2. **Price Alerts**: Check for price drops every 30 minutes
+3. **Data Cleanup**: Remove old deals daily at 2 AM
+4. **Weekly Digest**: Send deal summary emails on Mondays
 
 ## 🚀 Deployment
 
-### Backend Deployment (Railway/Fly.io)
+### Production Deployment
 
-1. **Railway**:
+1. **Environment Setup**:
 ```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Deploy
-railway login
-railway init
-railway up
+# Set production environment variables
+export FLASK_ENV=production
+export DATABASE_URL=your_production_db_url
+export REDIS_URL=your_production_redis_url
+export SECRET_KEY=your_production_secret_key
 ```
 
-2. **Fly.io**:
+2. **Database Migration**:
 ```bash
-# Install Fly CLI
-curl -L https://fly.io/install.sh | sh
-
-# Deploy
-fly launch
-fly deploy
+flask db upgrade
+flask init-db
 ```
 
-### Frontend Deployment (Vercel)
-
+3. **Start Services**:
 ```bash
-# Install Vercel CLI
-npm install -g vercel
+# Web server
+gunicorn --bind 0.0.0.0:8000 --workers 4 run:app
 
-# Deploy
-vercel --prod
+# Background workers
+celery -A tasks.celery worker --loglevel=info --concurrency=4
+celery -A tasks.celery beat --loglevel=info
 ```
 
-### Database (Supabase)
+### Docker Production
 
-1. Create project at https://supabase.com
-2. Get connection string
-3. Update DATABASE_URL in environment
+```bash
+# Build and deploy
+docker-compose -f docker-compose.yml up -d
+
+# Scale workers
+docker-compose up -d --scale worker=3
+```
 
 ## 🧪 Testing
 
-### Backend Tests
 ```bash
-cd backend
-pytest tests/ -v
-```
+# Install test dependencies
+pip install pytest pytest-flask
 
-### Frontend Tests
-```bash
-cd frontend
-npm run test
-```
+# Run tests
+pytest
 
-### Integration Tests
-```bash
-# Run full test suite
-docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+# Run with coverage
+pytest --cov=app
 ```
 
 ## 📈 Performance Considerations
 
-- **Caching**: Redis for API response caching
+- **Caching**: Redis for API response caching (30-minute TTL)
 - **Rate Limiting**: Implemented for all external API calls
 - **Database Indexing**: Optimized queries for game search
-- **CDN**: Static assets served via CDN
-- **Lazy Loading**: Frontend components and images
+- **Background Processing**: Celery for heavy operations
+- **Connection Pooling**: PostgreSQL connection pooling
 
 ## 🔒 Security
 
-- **API Rate Limiting**: Prevents abuse
-- **Input Validation**: Pydantic models for request validation
-- **CORS Configuration**: Properly configured for production
+- **Password Hashing**: bcrypt for secure password storage
+- **Session Management**: Flask-Login for user sessions
+- **CSRF Protection**: Flask-WTF for form protection
+- **Input Validation**: SQLAlchemy ORM prevents SQL injection
 - **Environment Variables**: Sensitive data not in code
-- **SQL Injection Prevention**: ORM-based queries
 
 ## 🤝 Contributing
 
@@ -281,10 +264,9 @@ docker-compose -f docker-compose.test.yml up --abort-on-container-exit
 ### Development Guidelines
 
 - Follow PEP 8 for Python code
-- Use TypeScript for all frontend code
 - Write tests for new features
 - Update documentation for API changes
-- Use conventional commits
+- Use type hints where appropriate
 
 ## 📝 License
 
@@ -292,17 +274,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [IGDB](https://www.igdb.com/) for game metadata
-- [Steam](https://store.steampowered.com/) for pricing data
-- [Epic Games Store](https://store.epicgames.com/) for deals
-- [GOG](https://www.gog.com/) for DRM-free game information
+- [CheapShark API](https://apidocs.cheapshark.com/) for deal aggregation
+- [Steam Web API](https://steamcommunity.com/dev) for game metadata
+- [Flask](https://flask.palletsprojects.com/) for the web framework
+- [Celery](https://docs.celeryproject.org/) for background tasks
 
 ## 📞 Support
 
 For support and questions:
 - Create an issue on GitHub
-- Check the [Wiki](../../wiki) for detailed documentation
-- Join our [Discord](https://discord.gg/gametracker) community
+- Check the documentation
+- Contact the development team
 
 ---
 

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Wishlist - Game Price Tracker{% endblock %}
+
+{% block content %}
+<div class="bg-slate-900 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-heart text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-white">Your Wishlist</h1>
+                <p class="text-slate-400">Track your favorite games and get price alerts</p>
+            </div>
+        </div>
+        
+        <!-- Wishlist Stats -->
+        {% if stats %}
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-slate-800 rounded-lg p-4">
+                    <div class="text-2xl font-bold text-red-500">{{ stats.total_games }}</div>
+                    <p class="text-sm text-slate-400">Total Games</p>
+                </div>
+                <div class="bg-slate-800 rounded-lg p-4">
+                    <div class="text-2xl font-bold text-green-500">{{ stats.on_sale }}</div>
+                    <p class="text-sm text-slate-400">On Sale</p>
+                </div>
+                <div class="bg-slate-800 rounded-lg p-4">
+                    <div class="text-2xl font-bold text-yellow-500">{{ stats.price_alerts }}</div>
+                    <p class="text-sm text-slate-400">Price Alerts</p>
+                </div>
+                <div class="bg-slate-800 rounded-lg p-4">
+                    <div class="text-2xl font-bold text-white">${{ "%.2f"|format(stats.total_value) }}</div>
+                    <p class="text-sm text-slate-400">Total Value</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Wishlist Games -->
+        {% if games %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {% for game in games %}
+                    <div class="game-card rounded-lg overflow-hidden relative">
+                        <!-- Remove Button -->
+                        <button class="absolute top-2 right-2 z-10 w-8 h-8 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-colors"
+                                onclick="removeFromWishlist({{ game.id }})">
+                            <i class="fas fa-trash text-white text-sm"></i>
+                        </button>
+                        
+                        <!-- Price Alert Button -->
+                        <button class="absolute top-2 right-12 z-10 w-8 h-8 bg-yellow-600 hover:bg-yellow-700 rounded-full flex items-center justify-center transition-colors"
+                                onclick="setPriceAlert({{ game.id }})">
+                            <i class="fas fa-bell text-white text-sm"></i>
+                        </button>
+                        
+                        <div class="relative aspect-[3/4] overflow-hidden">
+                            <img src="{{ game.cover_image_url or 'https://via.placeholder.com/300x400/1a1a1a/888888?text=' + game.title|urlencode }}" 
+                                 alt="{{ game.title }}" 
+                                 class="w-full h-full object-cover">
+                            
+                            {% if game.metacritic_score %}
+                                <div class="absolute bottom-3 left-3">
+                                    <div class="bg-black/70 px-2 py-1 rounded flex items-center gap-1">
+                                        <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                        <span class="text-white text-sm font-bold">{{ game.metacritic_score }}</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="p-4">
+                            <h3 class="font-bold text-white text-base leading-tight mb-2 line-clamp-2 min-h-[2.5rem]">
+                                {{ game.title }}
+                            </h3>
+                            
+                            <p class="text-slate-400 text-sm mb-3">
+                                {{ game.developer or 'Game Developer' }}
+                            </p>
+                            
+                            <!-- Best Current Price -->
+                            {% if game.deals %}
+                                {% set best_deal = game.deals|sort(attribute='sale_price')|first %}
+                                <div class="mb-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-medium text-slate-300">Best Price</span>
+                                        <span class="text-sm text-slate-400">{{ best_deal.store.name }}</span>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            {% if best_deal.savings_percentage > 0 %}
+                                                <span class="text-slate-400 line-through text-sm">
+                                                    ${{ "%.2f"|format(best_deal.normal_price) }}
+                                                </span>
+                                            {% endif %}
+                                            <span class="price-highlight text-lg">
+                                                {% if best_deal.sale_price == 0 %}
+                                                    FREE
+                                                {% else %}
+                                                    ${{ "%.2f"|format(best_deal.sale_price) }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        
+                                        <a href="{{ best_deal.deal_url }}" 
+                                           target="_blank"
+                                           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                            <i class="fas fa-external-link-alt mr-1"></i>
+                                            View
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            <a href="{{ url_for('game_details', game_id=game.id) }}" 
+                               class="block w-full text-center bg-slate-700 hover:bg-slate-600 text-white py-2 rounded transition-colors">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-heart text-6xl text-slate-600 mb-4"></i>
+                <h3 class="text-lg font-semibold text-white mb-2">Your wishlist is empty</h3>
+                <p class="text-slate-400 mb-4">
+                    Start adding games to track their prices and get notified of deals.
+                </p>
+                <a href="{{ url_for('index') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Browse Games
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function setPriceAlert(gameId) {
+        const targetPrice = prompt('Enter your target price (USD):');
+        if (targetPrice && !isNaN(targetPrice)) {
+            fetch('/api/price-alert', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    game_id: gameId,
+                    target_price: parseFloat(targetPrice)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`Price alert set for $${targetPrice}!`, 'success');
+                } else {
+                    showNotification(data.error || 'Failed to set price alert', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error setting price alert:', error);
+                showNotification('Failed to set price alert', 'error');
+            });
+        }
+    }
+</script>
+{% endblock %}

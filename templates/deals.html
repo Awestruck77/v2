@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Game Deals - Game Price Tracker{% endblock %}
+
+{% block content %}
+<div class="bg-slate-900 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-tags text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-white">Game Deals</h1>
+                <p class="text-slate-400">Discover the best deals across all stores</p>
+            </div>
+        </div>
+        
+        <!-- Deal Categories Tabs -->
+        <div class="mb-8">
+            <div class="flex space-x-1 bg-slate-800 rounded-lg p-1">
+                <button onclick="showTab('hot')" id="tab-hot" class="flex-1 py-2 px-4 rounded-md text-white font-medium transition-colors bg-blue-600">
+                    <i class="fas fa-fire mr-2"></i>Hot Deals
+                </button>
+                <button onclick="showTab('new')" id="tab-new" class="flex-1 py-2 px-4 rounded-md text-slate-400 font-medium transition-colors hover:text-white">
+                    <i class="fas fa-clock mr-2"></i>New Deals
+                </button>
+                <button onclick="showTab('free')" id="tab-free" class="flex-1 py-2 px-4 rounded-md text-slate-400 font-medium transition-colors hover:text-white">
+                    <i class="fas fa-gift mr-2"></i>Free Games
+                </button>
+            </div>
+        </div>
+        
+        <!-- Hot Deals Tab -->
+        <div id="content-hot" class="tab-content">
+            <div class="flex items-center gap-2 mb-6">
+                <i class="fas fa-fire text-orange-500 text-xl"></i>
+                <h2 class="text-xl font-semibold text-white">Hot Deals</h2>
+            </div>
+            
+            {% if hot_deals %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {% for deal in hot_deals %}
+                        <div class="game-card rounded-lg overflow-hidden">
+                            <div class="relative aspect-[3/4] overflow-hidden">
+                                <img src="{{ deal.game.cover_image_url or 'https://via.placeholder.com/300x400/1a1a1a/888888?text=' + deal.title|urlencode }}" 
+                                     alt="{{ deal.title }}" 
+                                     class="w-full h-full object-cover">
+                                
+                                <div class="absolute top-3 right-3">
+                                    <span class="discount-badge px-2 py-1 rounded text-sm font-bold">
+                                        -{{ "%.0f"|format(deal.savings_percentage) }}%
+                                    </span>
+                                </div>
+                                
+                                {% if current_user.is_authenticated %}
+                                    <button class="absolute top-3 left-3 w-8 h-8 bg-black/70 hover:bg-black/90 rounded-full flex items-center justify-center transition-colors"
+                                            data-game-id="{{ deal.game.id }}"
+                                            onclick="addToWishlist({{ deal.game.id }})">
+                                        <i class="far fa-heart text-gray-400"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="p-4">
+                                <h3 class="font-bold text-white text-sm leading-tight mb-2 line-clamp-2 min-h-[2.5rem]">
+                                    {{ deal.title }}
+                                </h3>
+                                
+                                <p class="text-slate-400 text-sm mb-3">
+                                    {{ deal.game.developer or 'Game Developer' }}
+                                </p>
+                                
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-slate-400 line-through text-sm">
+                                            ${{ "%.2f"|format(deal.normal_price) }}
+                                        </span>
+                                        <span class="price-highlight text-lg">
+                                            ${{ "%.2f"|format(deal.sale_price) }}
+                                        </span>
+                                    </div>
+                                    
+                                    <a href="{{ deal.deal_url }}" 
+                                       target="_blank"
+                                       class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                        <i class="fas fa-external-link-alt mr-1"></i>
+                                        View
+                                    </a>
+                                </div>
+                                
+                                <a href="{{ url_for('game_details', game_id=deal.game.id) }}" 
+                                   class="block w-full text-center bg-slate-700 hover:bg-slate-600 text-white py-2 rounded transition-colors">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-fire text-6xl text-slate-600 mb-4"></i>
+                    <h3 class="text-lg font-semibold text-white mb-2">No hot deals available</h3>
+                    <p class="text-slate-400">Check back later for new hot deals!</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- New Deals Tab -->
+        <div id="content-new" class="tab-content hidden">
+            <div class="flex items-center gap-2 mb-6">
+                <i class="fas fa-clock text-blue-500 text-xl"></i>
+                <h2 class="text-xl font-semibold text-white">New Deals</h2>
+            </div>
+            
+            {% if new_deals %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {% for deal in new_deals %}
+                        <div class="game-card rounded-lg overflow-hidden">
+                            <div class="relative aspect-[3/4] overflow-hidden">
+                                <img src="{{ deal.game.cover_image_url or 'https://via.placeholder.com/300x400/1a1a1a/888888?text=' + deal.title|urlencode }}" 
+                                     alt="{{ deal.title }}" 
+                                     class="w-full h-full object-cover">
+                                
+                                {% if deal.savings_percentage > 0 %}
+                                    <div class="absolute top-3 right-3">
+                                        <span class="discount-badge px-2 py-1 rounded text-sm font-bold">
+                                            -{{ "%.0f"|format(deal.savings_percentage) }}%
+                                        </span>
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="absolute top-3 left-3">
+                                    <span class="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">
+                                        NEW
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4">
+                                <h3 class="font-bold text-white text-sm leading-tight mb-2 line-clamp-2 min-h-[2.5rem]">
+                                    {{ deal.title }}
+                                </h3>
+                                
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-2">
+                                        {% if deal.savings_percentage > 0 %}
+                                            <span class="text-slate-400 line-through text-sm">
+                                                ${{ "%.2f"|format(deal.normal_price) }}
+                                            </span>
+                                        {% endif %}
+                                        <span class="price-highlight text-lg">
+                                            {% if deal.sale_price == 0 %}
+                                                FREE
+                                            {% else %}
+                                                ${{ "%.2f"|format(deal.sale_price) }}
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    
+                                    <a href="{{ deal.deal_url }}" 
+                                       target="_blank"
+                                       class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                        View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-clock text-6xl text-slate-600 mb-4"></i>
+                    <h3 class="text-lg font-semibold text-white mb-2">No new deals available</h3>
+                    <p class="text-slate-400">Check back later for new deals!</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Free Games Tab -->
+        <div id="content-free" class="tab-content hidden">
+            <div class="flex items-center gap-2 mb-6">
+                <i class="fas fa-gift text-green-500 text-xl"></i>
+                <h2 class="text-xl font-semibold text-white">Free Games</h2>
+            </div>
+            
+            {% if free_games %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {% for game in free_games %}
+                        <div class="game-card rounded-lg overflow-hidden">
+                            <div class="relative aspect-[3/4] overflow-hidden">
+                                <img src="{{ game.game.cover_image_url or 'https://via.placeholder.com/300x400/1a1a1a/888888?text=' + game.title|urlencode }}" 
+                                     alt="{{ game.title }}" 
+                                     class="w-full h-full object-cover">
+                                
+                                <div class="absolute top-3 right-3">
+                                    <span class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">
+                                        FREE
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4">
+                                <h3 class="font-bold text-white text-sm leading-tight mb-2 line-clamp-2 min-h-[2.5rem]">
+                                    {{ game.title }}
+                                </h3>
+                                
+                                <div class="text-center mb-4">
+                                    <p class="text-slate-400 text-sm">
+                                        Usually: <span class="line-through">${{ "%.2f"|format(game.normal_price) }}</span>
+                                    </p>
+                                    <p class="price-highlight text-lg">
+                                        Now: FREE (Save 100%)
+                                    </p>
+                                </div>
+                                
+                                <a href="{{ game.deal_url }}" 
+                                   target="_blank"
+                                   class="block w-full text-center bg-green-600 hover:bg-green-700 text-white py-2 rounded transition-colors">
+                                    <i class="fas fa-external-link-alt mr-2"></i>
+                                    Claim Now
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-gift text-6xl text-slate-600 mb-4"></i>
+                    <h3 class="text-lg font-semibold text-white mb-2">No free games available</h3>
+                    <p class="text-slate-400">Check back later for free games!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function showTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+            tab.classList.remove('bg-blue-600');
+            tab.classList.add('text-slate-400');
+        });
+        
+        // Show selected tab content
+        document.getElementById(`content-${tabName}`).classList.remove('hidden');
+        
+        // Add active class to selected tab
+        const activeTab = document.getElementById(`tab-${tabName}`);
+        activeTab.classList.add('bg-blue-600');
+        activeTab.classList.remove('text-slate-400');
+        activeTab.classList.add('text-white');
+    }
+</script>
+{% endblock %}
