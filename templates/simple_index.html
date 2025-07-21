@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Price Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; }
+        .game-card { background: linear-gradient(145deg, #1e293b, #334155); border: 1px solid #475569; }
+        .game-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); }
+        .price-highlight { color: #10b981; font-weight: bold; }
+        .discount-badge { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-slate-800 border-b border-slate-700">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-gamepad text-white"></i>
+                    </div>
+                    <a href="/" class="text-xl font-bold text-white">Game Price Tracker</a>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="/" class="text-slate-300 hover:text-white">Home</a>
+                    <a href="/search" class="text-slate-300 hover:text-white">Search</a>
+                    <a href="/deals" class="text-slate-300 hover:text-white">Deals</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-600 py-12">
+        <div class="container mx-auto px-4 text-center text-white">
+            <h1 class="text-4xl md:text-6xl font-bold mb-4">Find the Best Game Deals</h1>
+            <p class="text-xl mb-8">Track prices across multiple stores and never miss a discount</p>
+            
+            <form action="/search" method="GET" class="max-w-2xl mx-auto flex gap-2">
+                <input type="text" name="q" placeholder="Search for games..." 
+                       class="flex-1 px-4 py-3 rounded-lg text-gray-900 text-lg">
+                <button type="submit" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold">
+                    Search
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Stats -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-green-100 text-sm">Active Offers</p>
+                        <p class="text-3xl font-bold">{{ stats.active_offers }}</p>
+                    </div>
+                    <i class="fas fa-gift text-2xl text-green-200"></i>
+                </div>
+            </div>
+            <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-orange-100 text-sm">Ending Soon</p>
+                        <p class="text-3xl font-bold">{{ stats.ending_soon }}</p>
+                    </div>
+                    <i class="fas fa-clock text-2xl text-orange-200"></i>
+                </div>
+            </div>
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-blue-100 text-sm">Total Value</p>
+                        <p class="text-3xl font-bold">${{ "%.0f"|format(stats.total_value) }}</p>
+                    </div>
+                    <i class="fas fa-calendar text-2xl text-blue-200"></i>
+                </div>
+            </div>
+            <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-purple-100 text-sm">Your Savings</p>
+                        <p class="text-3xl font-bold">{{ stats.your_savings }}%</p>
+                    </div>
+                    <i class="fas fa-percentage text-2xl text-purple-200"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hot Deals -->
+        <div class="mb-12">
+            <h2 class="text-3xl font-bold text-white mb-6">🔥 Hot Deals</h2>
+            
+            {% if deals %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {% for deal in deals %}
+                        <div class="game-card rounded-lg overflow-hidden transition-all duration-300 hover:scale-105">
+                            <div class="relative aspect-[3/4] overflow-hidden">
+                                <img src="https://via.placeholder.com/300x400/1a1a1a/888888?text={{ deal.title|urlencode }}" 
+                                     alt="{{ deal.title }}" class="w-full h-full object-cover">
+                                
+                                {% if deal.savings_percentage > 0 %}
+                                    <div class="absolute top-3 right-3">
+                                        <span class="discount-badge px-2 py-1 rounded text-sm font-bold text-white">
+                                            -{{ "%.0f"|format(deal.savings_percentage) }}%
+                                        </span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="p-4">
+                                <h3 class="font-bold text-white text-sm mb-2">{{ deal.title }}</h3>
+                                <p class="text-slate-400 text-sm mb-3">{{ deal.game.developer if deal.game else 'Game Developer' }}</p>
+                                
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-2">
+                                        {% if deal.savings_percentage > 0 %}
+                                            <span class="text-slate-400 line-through text-sm">
+                                                ${{ "%.2f"|format(deal.normal_price) }}
+                                            </span>
+                                        {% endif %}
+                                        <span class="price-highlight text-lg">
+                                            {% if deal.sale_price == 0 %}FREE{% else %}${{ "%.2f"|format(deal.sale_price) }}{% endif %}
+                                        </span>
+                                    </div>
+                                    
+                                    <a href="{{ deal.deal_url or '#' }}" target="_blank"
+                                       class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                        View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-gamepad text-6xl text-slate-600 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-white mb-2">No deals available</h3>
+                    <p class="text-slate-400">Check back later for new deals!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

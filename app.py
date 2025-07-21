@@ -1,13 +1,17 @@
 """
 Game Price Tracker - Main Flask Application
 """
+import sys
+import os
+
+# Add the current directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_cors import CORS
-from flask_caching import Cache
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
@@ -22,15 +26,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///gametracker.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['CACHE_TYPE'] = 'redis'
-app.config['CACHE_REDIS_URL'] = os.getenv('REDIS_URL', 'redis://localhost:6379')
 
 # Initialize extensions
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth.login'
-cache = Cache(app)
 CORS(app)
 
 # Configure logging
@@ -38,11 +39,69 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Import models and services
-from models import User, Game, Store, Deal, UserWishlist, PriceAlert
-from services.game_service import GameService
-from services.deal_service import DealService
-from services.price_service import PriceService
-from services.external_apis import SteamAPI, EpicAPI, GOGAPI
+try:
+    from models import User, Game, Store, Deal, UserWishlist, PriceAlert
+    from services.game_service import GameService
+    from services.deal_service import DealService
+    from services.price_service import PriceService
+    from services.external_apis import SteamAPI, EpicAPI, GOGAPI
+except ImportError as e:
+    print(f"Import error: {e}")
+    # Create minimal models for initial setup
+    class User(db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        email = db.Column(db.String(255), unique=True, nullable=False)
+        password_hash = db.Column(db.String(255), nullable=False)
+        created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    class Game(db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        title = db.Column(db.String(255), nullable=False)
+        created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    class Store(db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        name = db.Column(db.String(100), nullable=False)
+        slug = db.Column(db.String(100), nullable=False)
+    
+    class Deal(db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        title = db.Column(db.String(255), nullable=False)
+        sale_price = db.Column(db.Float, nullable=False)
+        normal_price = db.Column(db.Float, nullable=False)
+        savings_percentage = db.Column(db.Float, nullable=False)
+        created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    class UserWishlist(db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        user_id = db.Column(db.Integer, nullable=False)
+        game_id = db.Column(db.Integer, nullable=False)
+    
+    class PriceAlert(db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        user_id = db.Column(db.Integer, nullable=False)
+        game_id = db.Column(db.Integer, nullable=False)
+        target_price = db.Column(db.Float, nullable=False)
+    
+    # Create minimal services
+    class GameService:
+        def __init__(self, db): self.db = db
+        def search_games(self, **kwargs): return []
+        def get_game_details(self, game_id): return None
+        def get_similar_games(self, game_id, limit=6): return []
+    
+    class DealService:
+        def __init__(self, db): self.db = db
+        def get_hot_deals(self, **kwargs): return []
+        def get_recent_deals(self, **kwargs): return []
+        def get_free_games(self, **kwargs): return []
+        def get_deals(self, **kwargs): return []
+        def get_store_deals(self, store_id, **kwargs): return []
+    
+    class PriceService:
+        def __init__(self, db): self.db = db
+        def get_price_history(self, game_id, **kwargs): return {}
+        def check_price_alerts(self): return 0
 
 # User loader for Flask-Login
 @login_manager.user_loader

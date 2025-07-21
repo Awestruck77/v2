@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deals - Game Price Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; }
+        .game-card { background: linear-gradient(145deg, #1e293b, #334155); border: 1px solid #475569; }
+        .price-highlight { color: #10b981; font-weight: bold; }
+        .discount-badge { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-slate-800 border-b border-slate-700">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-gamepad text-white"></i>
+                    </div>
+                    <a href="/" class="text-xl font-bold text-white">Game Price Tracker</a>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="/" class="text-slate-300 hover:text-white">Home</a>
+                    <a href="/search" class="text-slate-300 hover:text-white">Search</a>
+                    <a href="/deals" class="text-slate-300 hover:text-white">Deals</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-tags text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-white">Game Deals</h1>
+                <p class="text-slate-400">Discover the best deals across all stores</p>
+            </div>
+        </div>
+
+        <!-- Hot Deals -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <i class="fas fa-fire text-orange-500"></i>Hot Deals
+            </h2>
+            
+            {% if hot_deals %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {% for deal in hot_deals %}
+                        <div class="game-card rounded-lg overflow-hidden">
+                            <div class="relative aspect-[3/4] overflow-hidden">
+                                <img src="https://via.placeholder.com/300x400/1a1a1a/888888?text={{ deal.title|urlencode }}" 
+                                     alt="{{ deal.title }}" class="w-full h-full object-cover">
+                                
+                                <div class="absolute top-3 right-3">
+                                    <span class="discount-badge px-2 py-1 rounded text-sm font-bold text-white">
+                                        -{{ "%.0f"|format(deal.savings_percentage) }}%
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4">
+                                <h3 class="font-bold text-white text-sm mb-2">{{ deal.title }}</h3>
+                                
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-slate-400 line-through text-sm">
+                                            ${{ "%.2f"|format(deal.normal_price) }}
+                                        </span>
+                                        <span class="price-highlight text-lg">
+                                            ${{ "%.2f"|format(deal.sale_price) }}
+                                        </span>
+                                    </div>
+                                    
+                                    <a href="{{ deal.deal_url or '#' }}" target="_blank"
+                                       class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                        View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <p class="text-slate-400">No hot deals available right now.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- New Deals -->
+        <div class="mb-12">
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <i class="fas fa-clock text-blue-500"></i>New Deals
+            </h2>
+            
+            {% if new_deals %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {% for deal in new_deals %}
+                        <div class="game-card rounded-lg overflow-hidden">
+                            <div class="relative aspect-[3/4] overflow-hidden">
+                                <img src="https://via.placeholder.com/300x400/1a1a1a/888888?text={{ deal.title|urlencode }}" 
+                                     alt="{{ deal.title }}" class="w-full h-full object-cover">
+                                
+                                <div class="absolute top-3 left-3">
+                                    <span class="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">NEW</span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4">
+                                <h3 class="font-bold text-white text-sm mb-2">{{ deal.title }}</h3>
+                                
+                                <div class="flex items-center justify-between">
+                                    <span class="price-highlight text-lg">
+                                        {% if deal.sale_price == 0 %}FREE{% else %}${{ "%.2f"|format(deal.sale_price) }}{% endif %}
+                                    </span>
+                                    
+                                    <a href="{{ deal.deal_url or '#' }}" target="_blank"
+                                       class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                        View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <p class="text-slate-400">No new deals available.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Free Games -->
+        <div>
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <i class="fas fa-gift text-green-500"></i>Free Games
+            </h2>
+            
+            {% if free_games %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {% for game in free_games %}
+                        <div class="game-card rounded-lg overflow-hidden">
+                            <div class="relative aspect-[3/4] overflow-hidden">
+                                <img src="https://via.placeholder.com/300x400/1a1a1a/888888?text={{ game.title|urlencode }}" 
+                                     alt="{{ game.title }}" class="w-full h-full object-cover">
+                                
+                                <div class="absolute top-3 right-3">
+                                    <span class="bg-green-600 text-white px-2 py-1 rounded text-sm font-bold">FREE</span>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4">
+                                <h3 class="font-bold text-white text-sm mb-2">{{ game.title }}</h3>
+                                
+                                <div class="text-center">
+                                    <p class="price-highlight text-lg mb-3">FREE</p>
+                                    
+                                    <a href="{{ game.deal_url or '#' }}" target="_blank"
+                                       class="block w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded transition-colors">
+                                        Claim Now
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <p class="text-slate-400">No free games available right now.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
